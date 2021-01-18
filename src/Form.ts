@@ -15,7 +15,7 @@ import { createValue, ObservableValue } from "@corets/value"
 import { createFormValues } from "./createFormValues"
 import { createFormFields } from "./createFormFields"
 import { createFormErrors } from "./createFormErrors"
-import merge from "lodash/merge"
+import { merge } from "lodash-es"
 import {
   createValidationResult,
   ObjectSchema,

@@ -1,9 +1,6 @@
 import { ObservableFormFields, ObservableFormValues } from "./types"
 import { createStore, ObservableStore, StoreCallback } from "@corets/store"
-import get from "lodash/get"
-import has from "lodash/has"
-import set from "lodash/set"
-import isEqual from "lodash/isEqual"
+import { get, has, set, isEqual } from "lodash-es"
 
 export class FormValues<TValue extends object>
   implements ObservableFormValues<TValue> {

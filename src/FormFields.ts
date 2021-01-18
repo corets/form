@@ -1,5 +1,4 @@
-import difference from "lodash/difference"
-import uniq from "lodash/uniq"
+import { difference, uniq } from "lodash-es"
 import { ObservableFormFields } from "./types"
 import { createValue, ObservableValue, ValueCallback } from "@corets/value"
 

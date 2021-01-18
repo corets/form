@@ -1,7 +1,7 @@
 import { FormErrorsCallback, ObservableErrors } from "./types"
 import { ValidationResult } from "@corets/schema"
 import { createStore, ObservableStore } from "@corets/store"
-import get from "lodash/get"
+import { get } from "lodash-es"
 import { isEmptyErrorsObject } from "./isEmptyErrorsObject"
 import { isEmptyErrorsArray } from "./isEmptyErrorsArray"
 
