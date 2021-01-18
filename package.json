@@ -6,6 +6,7 @@
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/types/index.d.ts",
+  "sideEffects": false,
   "keywords": [
     "corets",
     "form"
