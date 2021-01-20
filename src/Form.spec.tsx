@@ -647,6 +647,29 @@ describe("Form", () => {
     expect(listener).toHaveBeenCalledTimes(2)
   })
 
+  it("listens without debounce", () => {
+    const form = new Form({ foo: { bar: "baz" } }).configure({
+      debounceChanges: 0,
+    })
+    let listener = jest.fn()
+
+    const unsubscribe = form.listen(listener)
+
+    expect(listener).toHaveBeenCalledTimes(7)
+    expect(listener).toHaveBeenCalledWith(form)
+
+    form.setAt("foo.bar", "yolo")
+
+    expect(listener).toHaveBeenCalledTimes(10)
+    expect(listener).toHaveBeenCalledWith(form)
+
+    unsubscribe()
+
+    form.setAt("foo.bar", "swag")
+
+    expect(listener).toHaveBeenCalledTimes(10)
+  })
+
   it("deps", () => {
     const form = new Form({ foo: "foo", bar: "bar" })
 

@@ -50,7 +50,7 @@ export type FormConfig<TValue extends object, TResult> = {
   validateOnSubmit: boolean
   validateChangedFieldsOnly: boolean
   validateOnChange: boolean
-  debounceForListeners: number
+  debounceChanges: number
 }
 
 export interface ObservableForm<TValue extends object = any, TResult = any> {

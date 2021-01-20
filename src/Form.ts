@@ -39,7 +39,7 @@ export class Form<TValue extends object = any, TResult = any>
       validateChangedFieldsOnly: false,
       validateOnChange: true,
       validateOnSubmit: true,
-      debounceForListeners: 10,
+      debounceChanges: 10,
     })
     this.values = createStore(initialValues)
     this.errors = createStore({})
@@ -272,10 +272,10 @@ export class Form<TValue extends object = any, TResult = any>
     callback: FormCallback<TValue, TResult>,
     notifyImmediately?: boolean
   ): FormCallbackUnsubscribe {
-    const listener = debounce(
-      () => callback(this),
-      this.config.get().debounceForListeners
-    )
+    const listener =
+      this.config.get().debounceChanges > 0
+        ? debounce(() => callback(this), this.config.get().debounceChanges)
+        : () => callback(this)
 
     const unsubscribeCallbacks = [
       this.config.listen(listener, notifyImmediately),
