@@ -1,205 +1,394 @@
 import {
-  DepsOptions,
+  FormDepsOptions,
   FormCallback,
   FormConfig,
   FormHandler,
   FormSubmitOptions,
   FormValidateOptions,
   FormValidator,
-  ObservableErrors,
   ObservableForm,
-  ObservableFormFields,
-  ObservableFormValues,
+  FormCallbackUnsubscribe,
 } from "./types"
-import { createValue, ObservableValue } from "@corets/value"
-import { createFormValues } from "./createFormValues"
-import { createFormFields } from "./createFormFields"
-import { createFormErrors } from "./createFormErrors"
-import { merge } from "lodash-es"
+import { debounce, difference, get, isEqual, merge, set, uniq } from "lodash-es"
 import {
   createValidationResult,
   ObjectSchema,
   ValidationResult,
 } from "@corets/schema"
 import { isEmptyErrorsObject } from "./isEmptyErrorsObject"
+import { createStore, ObservableStore } from "@corets/store"
+import { createValue, ObservableValue } from "@corets/value"
+import { isEmptyErrorsArray } from "./isEmptyErrorsArray"
 
-export class Form<TValues extends object = any, TResult = any>
-  implements ObservableForm<TValues, TResult> {
-  config: FormConfig<TValues, TResult>
-  values: ObservableFormValues<TValues>
-  dirtyFields: ObservableFormFields
-  changedFields: ObservableFormFields
+export class Form<TValue extends object = any, TResult = any>
+  implements ObservableForm<TValue, TResult> {
+  config: ObservableStore<FormConfig<TValue, TResult>>
+  values: ObservableStore<TValue>
+  errors: ObservableStore<ValidationResult>
+  result: ObservableValue<TResult | undefined>
+  dirtyFields: ObservableValue<string[]>
+  changedFields: ObservableValue<string[]>
   submitting: ObservableValue<boolean>
   submitted: ObservableValue<boolean>
-  errors: ObservableErrors
-  result: ObservableValue<TResult | undefined>
 
-  constructor(initialValues: TValues) {
-    this.config = {
-      handler: () => undefined,
-      validators: [],
-      schemas: [],
+  constructor(initialValues: TValue = {} as TValue) {
+    this.config = createStore({
+      handler: undefined,
+      validator: undefined,
+      schema: undefined,
       validateChangedFieldsOnly: false,
       validateOnChange: true,
       validateOnSubmit: true,
-    }
-
-    this.dirtyFields = createFormFields()
-    this.changedFields = createFormFields()
-    this.values = createFormValues(
-      initialValues,
-      this.dirtyFields,
-      this.changedFields
-    )
-    this.submitting = createValue<boolean>(false)
-    this.submitted = createValue<boolean>(false)
-    this.errors = createFormErrors()
-    this.result = createValue<TResult | undefined>(undefined)
+      debounceForListeners: 10,
+    })
+    this.values = createStore(initialValues)
+    this.errors = createStore({})
+    this.result = createValue(undefined)
+    this.dirtyFields = createValue([])
+    this.changedFields = createValue([])
+    this.submitting = createValue(false)
+    this.submitted = createValue(false)
 
     this.setupValidateOnChange()
   }
 
-  reset(initialValues?: TValues): void {
+  get(): TValue {
+    return this.values.get()
+  }
+
+  getAt(path: string): any {
+    return get(this.get(), path)
+  }
+
+  set(newValues: TValue): void {
+    this.values.set(newValues)
+  }
+
+  setAt(path: string, newValue: any): void {
+    const newValues = set(this.get(), path, newValue)
+
+    this.set(newValues)
+
+    const oldValue = get(this.values.initialValue, path)
+
+    if (!isEqual(oldValue, newValue)) {
+      this.addChangedFields(path)
+    }
+
+    this.addDirtyFields(path)
+  }
+
+  put(newValues: Partial<TValue>): void {
+    this.values.put(newValues)
+  }
+
+  reset(initialValues?: TValue): void {
     this.values.reset(initialValues)
     this.submitting.reset()
     this.submitted.reset()
-    this.dirtyFields.clear()
-    this.changedFields.clear()
-    this.errors.clear()
+    this.dirtyFields.reset()
+    this.changedFields.reset()
+    this.errors.reset()
     this.result.reset()
   }
 
+  getErrors(): ValidationResult | undefined {
+    const errors = this.errors.get()
+
+    if (isEmptyErrorsObject(errors)) {
+      return undefined
+    }
+
+    return errors
+  }
+
+  getErrorsAt(path: string): string[] | undefined {
+    const errors = get(this.getErrors(), path)
+
+    if (isEmptyErrorsArray(errors)) {
+      return undefined
+    }
+
+    return errors
+  }
+
+  setErrors(newErrors: ValidationResult | undefined): void {
+    this.errors.set(newErrors || {})
+  }
+
+  setErrorsAt(path: string, newErrors: string | string[]): void {
+    if (!Array.isArray(newErrors)) {
+      newErrors = [newErrors]
+    }
+
+    const errors = this.getErrors() || {}
+    errors[path] = newErrors
+
+    this.setErrors(errors)
+  }
+
+  addErrors(newErrors: Partial<ValidationResult> | undefined): void {
+    this.errors.put(newErrors || {})
+  }
+
+  addErrorsAt(path: string, newErrors: string | string[]): void {
+    if (!Array.isArray(newErrors)) {
+      newErrors = [newErrors]
+    }
+
+    const errors = this.getErrorsAt(path) || []
+    errors.push(...newErrors)
+
+    this.setErrorsAt(path, errors)
+  }
+
+  hasErrors(): boolean {
+    return this.getErrors() !== undefined
+  }
+
+  hasErrorsAt(path: string): boolean {
+    return this.getErrorsAt(path) !== undefined
+  }
+
+  clearErrors(): void {
+    this.errors.reset()
+  }
+
+  clearErrorsAt(path: string | string[]): void {
+    if (!Array.isArray(path)) {
+      path = [path]
+    }
+
+    const errors = this.getErrors()
+
+    if (errors) {
+      path.forEach((p) => delete errors[p])
+
+      this.setErrors(errors)
+    }
+  }
+
+  isDirty(): boolean {
+    return this.getDirtyFields().length > 0
+  }
+
+  isDirtyField(field: string): boolean {
+    return this.getDirtyFields().includes(field)
+  }
+
+  getDirtyFields(): string[] {
+    return this.dirtyFields.get()
+  }
+
+  setDirtyFields(newFields: string | string[]): void {
+    if (!Array.isArray(newFields)) {
+      newFields = [newFields]
+    }
+
+    this.dirtyFields.set(uniq(newFields))
+  }
+
+  addDirtyFields(newFields: string | string[]): void {
+    if (!Array.isArray(newFields)) {
+      newFields = [newFields]
+    }
+
+    this.setDirtyFields([...this.getDirtyFields(), ...newFields])
+  }
+
+  clearDirtyFields(): void {
+    this.dirtyFields.reset()
+  }
+
+  clearDirtyFieldsAt(fields: string | string[]): void {
+    if (!Array.isArray(fields)) {
+      fields = [fields]
+    }
+
+    this.setDirtyFields(difference(this.getDirtyFields(), fields))
+  }
+
+  isChanged(): boolean {
+    return this.getChangedFields().length > 0
+  }
+
+  isChangedField(field: string): boolean {
+    return this.getChangedFields().includes(field)
+  }
+
+  getChangedFields(): string[] {
+    return this.changedFields.get()
+  }
+
+  setChangedFields(newFields: string | string[]): void {
+    if (!Array.isArray(newFields)) {
+      newFields = [newFields]
+    }
+
+    this.changedFields.set(uniq(newFields))
+  }
+
+  addChangedFields(newFields: string | string[]): void {
+    if (!Array.isArray(newFields)) {
+      newFields = [newFields]
+    }
+
+    this.setChangedFields([...this.getChangedFields(), ...newFields])
+  }
+
+  clearChangedFields(): void {
+    this.changedFields.reset()
+  }
+
+  clearChangedFieldsAt(fields: string | string[]): void {
+    if (!Array.isArray(fields)) {
+      fields = [fields]
+    }
+
+    this.setChangedFields(difference(this.getChangedFields(), fields))
+  }
+
+  getResult(): TResult | undefined {
+    return this.result.get()
+  }
+
+  setResult(newValue: TResult | undefined): void {
+    this.result.set(newValue)
+  }
+
+  clearResult(): void {
+    this.result.reset()
+  }
+
+  isSubmitting(): boolean {
+    return this.submitting.get()
+  }
+
+  isSubmitted(): boolean {
+    return this.submitted.get()
+  }
+
   listen(
-    callback: FormCallback<TValues, TResult>,
+    callback: FormCallback<TValue, TResult>,
     notifyImmediately?: boolean
-  ): this {
-    const formCallback = () => callback(this)
+  ): FormCallbackUnsubscribe {
+    const listener = debounce(
+      () => callback(this),
+      this.config.get().debounceForListeners
+    )
 
-    this.values.listen(formCallback, notifyImmediately)
-    this.submitting.listen(formCallback, notifyImmediately)
-    this.submitted.listen(formCallback, notifyImmediately)
-    this.dirtyFields.listen(formCallback, notifyImmediately)
-    this.changedFields.listen(formCallback, notifyImmediately)
-    this.errors.listen(formCallback, notifyImmediately)
-    this.result.listen(formCallback, notifyImmediately)
+    const unsubscribeCallbacks = [
+      this.config.listen(listener, notifyImmediately),
+      this.values.listen(listener, notifyImmediately),
+      this.result.listen(listener, notifyImmediately),
+      this.errors.listen(listener, notifyImmediately),
+      this.dirtyFields.listen(listener, notifyImmediately),
+      this.changedFields.listen(listener, notifyImmediately),
+      this.submitting.listen(listener, notifyImmediately),
+      this.submitted.listen(listener, notifyImmediately),
+    ]
+
+    const unsubscribe = () => {
+      unsubscribeCallbacks.forEach((unsubscribeCallback) =>
+        unsubscribeCallback()
+      )
+    }
+
+    return unsubscribe
+  }
+
+  configure(config: Partial<FormConfig<TValue, TResult>>): this {
+    this.config.put(config)
 
     return this
   }
 
-  configure(config: Partial<FormConfig<TValues, TResult>>): this {
-    this.config = { ...this.config, ...config }
+  handler(handler: FormHandler<TValue, TResult>): this {
+    this.config.put({ handler })
 
     return this
   }
 
-  handler(handler: FormHandler<TValues, TResult>): this {
-    this.config.handler = handler
+  validator(validator: FormValidator<TValue, TResult>): this {
+    this.config.put({ validator })
 
     return this
   }
 
-  validator(handler: FormValidator<TValues, TResult>): this {
-    this.config.validators.push(handler)
-
-    return this
-  }
-
-  schema(handler: ObjectSchema<TValues>): this {
-    this.config.schemas.push(handler)
+  schema(schema: ObjectSchema<TValue>): this {
+    this.config.put({ schema })
 
     return this
   }
 
   async submit(options?: FormSubmitOptions): Promise<TResult | undefined> {
-    if (this.submitting.get() === true) {
+    if (this.isSubmitting()) {
       return
     }
 
+    const config = this.config.get()
+
     const validate =
       options?.validate === true ||
-      (this.config.validateOnSubmit && options?.validate !== false)
+      (config.validateOnSubmit && options?.validate !== false)
 
     this.result.reset()
-    this.errors.clear()
+    this.errors.reset()
 
     this.submitting.set(true)
 
-    if (validate) {
-      const errors = await this.validate()
+    try {
+      if (validate) {
+        const errors = await this.validate()
 
-      if (errors) {
-        this.submitting.set(false)
+        if (errors) {
+          this.submitting.set(false)
 
-        return
+          return
+        }
       }
+    } catch (err) {
+      this.submitting.set(false)
+      throw err
     }
 
-    if (this.config.handler) {
-      try {
-        const result = await this.config.handler(this)
-        this.result.set(result)
-      } catch (error) {
-        console.error(`There was an error in form handler:`, error)
+    try {
+      const result = await this.runHandler()
 
-        this.submitting.set(false)
-
-        throw error
-      }
+      this.setResult(result)
+    } catch (err) {
+      this.submitting.set(false)
+      throw err
     }
 
     this.submitting.set(false)
     this.submitted.set(true)
 
-    return this.result.get()
+    return this.getResult()
   }
 
   async validate(
     options?: FormValidateOptions
   ): Promise<ValidationResult | undefined> {
+    const config = this.config.get()
+
     const changedFieldsOnly =
       options?.changedFieldsOnly === true ||
-      (this.config.validateChangedFieldsOnly &&
-        options?.changedFieldsOnly !== false)
+      (config.validateChangedFieldsOnly && options?.changedFieldsOnly !== false)
     const keepPreviousErrors = options?.keepPreviousErrors !== false
     const persistErrors = options?.persistErrors !== false
 
-    const validatorErrors = await Promise.all(
-      this.config.validators.map(async (validator, index) => {
-        try {
-          return await validator(this)
-        } catch (error) {
-          console.error(
-            `There was an error in form validator #${index}:`,
-            error
-          )
-          throw error
-        }
-      })
-    )
-
-    const schemaErrors = await Promise.all(
-      this.config.schemas.map(async (schema, index) => {
-        try {
-          return createValidationResult(
-            await schema.validateAsync(this.values.get())
-          )
-        } catch (error) {
-          console.error(`There was an error in form schema #${index}:`, error)
-          throw error
-        }
-      })
-    )
-
-    const errorsFromDifferentSources = [...validatorErrors, ...schemaErrors]
-
+    const validatorErrors = await this.runValidator()
+    const schemaErrors = await this.runSchema()
+    const errorsFromDifferentSources = [validatorErrors, schemaErrors]
     const newErrors = errorsFromDifferentSources.reduce((errors, errorSet) => {
       return merge({}, errors, errorSet)
     }, {})!
 
     if (changedFieldsOnly) {
-      const oldErrorKeys = Object.keys(this.errors.get() || {})
+      const oldErrorKeys = Object.keys(this.getErrors() || {})
       const newErrorKeys = Object.keys(newErrors)
-      const changedFields = this.changedFields.get()
+      const changedFields = this.getChangedFields()
 
       newErrorKeys.map((key) => {
         const fieldHasChanged = changedFields.includes(key)
@@ -216,35 +405,34 @@ export class Form<TValues extends object = any, TResult = any>
     }
 
     if (persistErrors) {
-      this.errors.set(newErrors)
+      this.setErrors(newErrors)
     }
 
     return isEmptyErrorsObject(newErrors) ? undefined : newErrors
   }
 
-  deps(field: string | string[], options: DepsOptions = {}): any[] {
+  deps(field: string | string[], options: FormDepsOptions = {}): any[] {
     const fields = Array.isArray(field) ? field : [field]
+    const config = options.config === false ? undefined : this.config.get()
     const values =
-      options.values === false
-        ? []
-        : fields.map((field) => this.values.getAt(field))
+      options.values === false ? [] : fields.map((field) => this.getAt(field))
     const errors =
       options.errors === false
         ? []
-        : fields.map((field) => this.errors.getAt(field))
+        : fields.map((field) => this.getErrorsAt(field))
+    const result = options.result === false ? undefined : this.getResult()
     const dirtyFields =
       options.dirtyFields === false
         ? []
-        : fields.map((field) => this.dirtyFields.has(field))
+        : fields.map((field) => this.isDirtyField(field))
     const changedFields =
       options.changedFields === false
         ? []
-        : fields.map((field) => this.changedFields.has(field))
-    const result = options.result === false ? undefined : this.result.get()
+        : fields.map((field) => this.isChangedField(field))
     const submitting =
-      options.submitting === false ? undefined : this.submitting.get()
+      options.submitting === false ? undefined : this.isSubmitting()
     const submitted =
-      options.submitted === false ? undefined : this.submitted.get()
+      options.submitted === false ? undefined : this.isSubmitted()
 
     const deps = [
       JSON.stringify(values),
@@ -254,6 +442,7 @@ export class Form<TValues extends object = any, TResult = any>
       JSON.stringify(result),
       JSON.stringify(submitting),
       JSON.stringify(submitted),
+      config,
     ]
 
     return deps
@@ -261,11 +450,46 @@ export class Form<TValues extends object = any, TResult = any>
 
   protected setupValidateOnChange() {
     this.values.listen(() => {
-      if (this.config.validateOnChange) {
+      if (this.config.get().validateOnChange) {
         try {
           this.validate({ changedFieldsOnly: true })
         } catch (error) {}
       }
     }, false)
+  }
+
+  protected async runValidator(): Promise<ValidationResult | undefined> {
+    if (!this.config.get().validator) return
+
+    try {
+      return this.config.get().validator!(this)
+    } catch (error) {
+      console.error("There was an error in form validator:", error)
+      throw error
+    }
+  }
+
+  protected async runSchema(): Promise<ValidationResult | undefined> {
+    if (!this.config.get().schema) return
+
+    try {
+      return createValidationResult(
+        await this.config.get().schema!.validateAsync(this.get())
+      )
+    } catch (error) {
+      console.error("There was an error in form schema:", error)
+      throw error
+    }
+  }
+
+  protected async runHandler(): Promise<TResult | undefined> {
+    if (this.config.get().handler) {
+      try {
+        return await this.config.get().handler!(this)
+      } catch (error) {
+        console.error("There was an error in form handler:", error)
+        throw error
+      }
+    }
   }
 }

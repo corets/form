@@ -1,81 +1,194 @@
 import { Form } from "./Form"
 import { object, string } from "@corets/schema"
 import { createTimeout } from "@corets/promise-helpers"
+import { createForm } from "./createForm"
 
 describe("Form", () => {
-  it("creates with initial state", () => {
+  it("creates with initial values", () => {
     const form = new Form({ foo: "bar" })
 
-    expect(form.values.get()).toEqual({ foo: "bar" })
+    expect(form.get()).toEqual({ foo: "bar" })
   })
 
-  it("returns and sets state", () => {
+  it("returns and sets values", () => {
     const form = new Form({})
 
-    expect(form.values.get()).toEqual({})
+    expect(form.get()).toEqual({})
 
-    form.values.set({ foo: "bar" })
+    form.set({ foo: "bar" })
 
-    expect(form.values.get()).toEqual({ foo: "bar" })
+    expect(form.get()).toEqual({ foo: "bar" })
   })
 
-  it("adds state", () => {
+  it("puts values partially", () => {
     const form = new Form<any>({ foo: "bar" })
 
-    form.values.add({ yolo: "swag" })
+    form.put({ yolo: "swag" })
 
-    expect(form.values.get()).toEqual({ foo: "bar", yolo: "swag" })
+    expect(form.get()).toEqual({ foo: "bar", yolo: "swag" })
   })
 
-  it("returns state at given path", () => {
+  it("returns values at given path", () => {
     const form = new Form<any>({ foo: "bar" })
 
-    expect(form.values.getAt("foo")).toBe("bar")
+    expect(form.getAt("foo")).toBe("bar")
   })
 
-  it("sets state at given path", () => {
+  it("sets values at given path", () => {
     const form = new Form<any>({ foo: "bar" })
 
-    form.values.setAt("yolo", "swag")
+    form.setAt("yolo", "swag")
 
-    expect(form.values.get()).toEqual({ foo: "bar", yolo: "swag" })
+    expect(form.get()).toEqual({ foo: "bar", yolo: "swag" })
   })
 
-  it("tells if a value is set at given path", () => {
+  it("resets everything to initial values", () => {
     const form = new Form<any>({ foo: "bar" })
 
-    expect(form.values.hasAt("foo")).toBe(true)
-    expect(form.values.hasAt("bar")).toBe(false)
-  })
-
-  it("resets everything to initial state", () => {
-    const form = new Form<any>({ foo: "bar" })
-
-    form.values.set({ yolo: "swag" })
+    form.set({ yolo: "swag" })
     form.submitting.set(true)
     form.submitted.set(true)
-    form.dirtyFields.set(["foo"])
-    form.changedFields.set(["foo"])
-    form.errors.set({ foo: ["bar"] })
-    form.result.set({ foo: ["bar"] })
+    form.setDirtyFields(["foo"])
+    form.setChangedFields(["foo"])
+    form.setErrors({ foo: ["bar"] })
+    form.setResult({ foo: ["bar"] })
 
     form.reset()
 
-    expect(form.values.get()).toEqual({ foo: "bar" })
-    expect(form.submitting.get()).toEqual(false)
-    expect(form.submitted.get()).toEqual(false)
-    expect(form.dirtyFields.get()).toEqual([])
-    expect(form.changedFields.get()).toEqual([])
-    expect(form.errors.get()).toEqual(undefined)
-    expect(form.result.get()).toEqual(undefined)
+    expect(form.get()).toEqual({ foo: "bar" })
+    expect(form.isSubmitting()).toEqual(false)
+    expect(form.isSubmitted()).toEqual(false)
+    expect(form.getDirtyFields()).toEqual([])
+    expect(form.getChangedFields()).toEqual([])
+    expect(form.getErrors()).toEqual(undefined)
+    expect(form.getResult()).toEqual(undefined)
+  })
+
+  it("returns and sets errors", () => {
+    const form = new Form()
+
+    expect(form.getErrors()).toBe(undefined)
+
+    form.setErrors({ foo: ["bar"] })
+
+    expect(form.getErrors()).toEqual({ foo: ["bar"] })
+
+    form.setErrors({ foo: ["baz"] })
+
+    expect(form.getErrors()).toEqual({ foo: ["baz"] })
+
+    form.setErrors(undefined)
+
+    expect(form.getErrors()).toEqual(undefined)
+  })
+
+  it("sets errors at a given path", () => {
+    const form = new Form()
+
+    form.setErrorsAt("foo", ["bar"])
+
+    expect(form.getErrors()).toEqual({ foo: ["bar"] })
+
+    form.setErrorsAt("foo", "baz")
+
+    expect(form.getErrors()).toEqual({ foo: ["baz"] })
+  })
+
+  it("tells if there are any errors", () => {
+    const form = new Form()
+
+    expect(form.hasErrors()).toBe(false)
+
+    form.setErrors({ foo: ["error"] })
+
+    expect(form.hasErrors()).toBe(true)
+
+    form.clearErrors()
+
+    expect(form.hasErrors()).toBe(false)
+  })
+
+  it("adds new errors", () => {
+    const form = new Form()
+    form.addErrors({ foo: ["bar"] })
+
+    expect(form.getErrors()).toEqual({ foo: ["bar"] })
+
+    form.addErrors({ bar: ["foo"] })
+
+    expect(form.getErrors()).toEqual({ foo: ["bar"], bar: ["foo"] })
+
+    form.addErrors(undefined)
+
+    expect(form.getErrors()).toEqual({ foo: ["bar"], bar: ["foo"] })
+  })
+
+  it("clears errors", () => {
+    const form = new Form()
+    form.setErrors({ foo: ["error"] })
+
+    form.clearErrors()
+
+    expect(form.getErrors()).toBe(undefined)
+  })
+
+  it("returns error at given path", () => {
+    const form = new Form()
+    form.setErrors({ foo: ["bar"] })
+
+    expect(form.getErrorsAt("foo")).toEqual(["bar"])
+    expect(form.getErrorsAt("bar")).toEqual(undefined)
+  })
+
+  it("adds errors at given path", () => {
+    const form = new Form()
+
+    form.addErrorsAt("foo", ["bar"])
+    form.addErrorsAt("foo", ["yolo"])
+
+    expect(form.getErrors()).toEqual({ foo: ["bar", "yolo"] })
+
+    form.addErrorsAt("bar", ["yolo"])
+
+    expect(form.getErrors()).toEqual({ foo: ["bar", "yolo"], bar: ["yolo"] })
+
+    form.addErrorsAt("bar", "baz")
+
+    expect(form.getErrors()).toEqual({
+      foo: ["bar", "yolo"],
+      bar: ["yolo", "baz"],
+    })
+  })
+
+  it("tells if there are any errors at given path", () => {
+    const form = new Form()
+    form.setErrors({ foo: ["bar"] })
+
+    expect(form.hasErrorsAt("foo")).toBe(true)
+    expect(form.hasErrorsAt("bar")).toBe(false)
+  })
+
+  it("removes errors at", () => {
+    const form = new Form()
+    form.setErrors({ foo: ["bar"], yolo: ["swag"] })
+
+    form.clearErrorsAt("yolo")
+
+    expect(form.getErrors()).toEqual({ foo: ["bar"] })
+
+    form.setErrors({ foo: ["bar"], yolo: ["swag"], baz: ["boink"] })
+
+    form.clearErrorsAt(["foo", "yolo"])
+
+    expect(form.getErrors()).toEqual({ baz: ["boink"] })
   })
 
   it("submits", async () => {
     const handler = jest.fn().mockResolvedValue(true)
     const form = new Form({ foo: "bar" }).configure({ validateOnSubmit: false })
     form.handler(handler)
-    form.errors.set({ foo: ["bar"] })
-    form.result.set({ foo: "bar" })
+    form.setErrors({ foo: ["bar"] })
+    form.setResult({ foo: "bar" })
 
     const submitting: any[] = []
     form.submitting.listen((value) => {
@@ -94,8 +207,67 @@ describe("Form", () => {
     expect(handler).toHaveBeenCalledWith(form)
     expect(submitting).toEqual([false, true, false])
     expect(submitted).toEqual([false, true])
-    expect(form.errors.get()).toEqual(undefined)
-    expect(form.result.get()).toEqual(true)
+    expect(form.getErrors()).toEqual(undefined)
+    expect(form.getResult()).toEqual(true)
+  })
+
+  it("does not submit if already submitting", async () => {
+    const handler = jest.fn()
+    const form = createForm().handler(handler)
+
+    form.submitting.set(true)
+
+    await form.submit()
+
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it("handles errors during submission", async () => {
+    const consoleError = console.error
+    console.error = jest.fn()
+
+    const form = createForm().handler(() => {
+      throw new Error()
+    })
+
+    await expect(() => form.submit()).rejects.toThrow()
+    expect(form.isSubmitting()).toBe(false)
+    expect(form.isSubmitted()).toBe(false)
+
+    console.error = consoleError
+  })
+
+  it("handles errors during validation", async () => {
+    const consoleError = console.error
+    console.error = jest.fn()
+
+    const form = createForm().validator(() => {
+      throw new Error()
+    })
+
+    await expect(() => form.submit()).rejects.toThrow()
+    expect(form.isSubmitting()).toBe(false)
+    expect(form.isSubmitted()).toBe(false)
+
+    await expect(() => form.validate()).rejects.toThrow()
+    expect(form.isSubmitting()).toBe(false)
+    expect(form.isSubmitted()).toBe(false)
+
+    console.error = consoleError
+  })
+
+  it("sets and returns result", () => {
+    const form = new Form()
+
+    expect(form.getResult()).toBe(undefined)
+
+    form.setResult("foo")
+
+    expect(form.getResult()).toBe("foo")
+
+    form.clearResult()
+
+    expect(form.getResult()).toBe(undefined)
   })
 
   it("handles rejections and thrown errors during submit", async () => {
@@ -134,9 +306,9 @@ describe("Form", () => {
   })
 
   it("validates with schema", async () => {
-    const form = new Form({ foo: "bar" })
-      .schema(object({ foo: string().min(4) }))
-      .schema(object({ bar: string().min(8) }) as any)
+    const form = new Form({ foo: "bar" }).schema(
+      object({ foo: string().min(4), bar: string().min(8) })
+    )
 
     const errors = (await form.validate())!
 
@@ -147,11 +319,11 @@ describe("Form", () => {
   })
 
   it("validates with function", async () => {
-    const validator = jest.fn()
-    const form = new Form({ foo: "bar" })
-      .validator(() => ({ foo: ["error"] }))
-      .validator(() => ({ bar: ["error"] }))
-      .validator(validator)
+    let receivedForm
+    const form = new Form({ foo: "bar" }).validator((f) => {
+      receivedForm = form
+      return { foo: ["error"], bar: ["error"] }
+    })
 
     const errors = (await form.validate())!
 
@@ -159,8 +331,7 @@ describe("Form", () => {
     expect(typeof errors.foo[0] === "string").toBe(true)
     expect(errors.bar.length).toBe(1)
     expect(typeof errors.bar[0] === "string").toBe(true)
-    expect(validator).toHaveBeenCalledTimes(1)
-    expect(validator).toHaveBeenCalledWith(form)
+    expect(receivedForm).toBe(form)
   })
 
   it("handles errors during validate", async () => {
@@ -286,7 +457,7 @@ describe("Form", () => {
 
     expect(status).toBe(undefined)
     expect(handler).not.toHaveBeenCalled()
-    expect(errors).toEqual([undefined, { foo: ["error"] }])
+    expect(errors).toEqual([{}, { foo: ["error"] }])
     expect(submitting).toEqual([false, true, false])
     expect(submitted).toEqual([false])
   })
@@ -317,7 +488,7 @@ describe("Form", () => {
 
     expect(status).toBe("result")
     expect(handler).toHaveBeenCalled()
-    expect(errors).toEqual([undefined])
+    expect(errors).toEqual([{}])
     expect(submitting).toEqual([false, true, false])
     expect(submitted).toEqual([false, true])
   })
@@ -331,7 +502,7 @@ describe("Form", () => {
 
     expect(errors1).toBe(undefined)
 
-    form.changedFields.add("foo")
+    form.addChangedFields("foo")
 
     const errors2 = (await form.validate())!
 
@@ -344,14 +515,14 @@ describe("Form", () => {
       .configure({ validateOnChange: true })
       .schema(object({ foo: string().min(3), bar: string().min(3) }))
 
-    expect(form.errors.get()).toBe(undefined)
+    expect(form.getErrors()).toBe(undefined)
 
-    form.values.setAt("foo", "b")
+    form.setAt("foo", "b")
 
     await createTimeout(0)
 
-    expect(form.errors.get()).not.toBe(undefined)
-    expect(form.errors.get()!.foo.length).toBe(1)
+    expect(form.getErrors()).not.toBe(undefined)
+    expect(form.getErrors()!.foo.length).toBe(1)
   })
 
   it("validates changed fields but keeps previous errors", async () => {
@@ -375,7 +546,7 @@ describe("Form", () => {
 
     expect(errors2 === undefined).toBe(true)
 
-    form.changedFields.add("foo")
+    form.addChangedFields("foo")
 
     const errors3 = await form.validate({
       changedFieldsOnly: true,
@@ -410,7 +581,7 @@ describe("Form", () => {
     expect(errors6?.foo?.length).toBe(1)
     expect(errors6?.bar?.length).toBe(1)
 
-    form.values.setAt("bar", "bar")
+    form.setAt("bar", "bar")
 
     const errors7 = await form.validate({ changedFieldsOnly: true })
 
@@ -427,43 +598,53 @@ describe("Form", () => {
     const errors1 = await form.validate({ persistErrors: false })
 
     expect(errors1 !== undefined).toBe(true)
-    expect(form.errors.get() !== undefined).toBe(false)
+    expect(form.getErrors() !== undefined).toBe(false)
 
     const errors2 = await form.validate()
 
     expect(errors2 !== undefined).toBe(true)
-    expect(form.errors.get() !== undefined).toBe(true)
+    expect(form.getErrors() !== undefined).toBe(true)
   })
 
   it("tracks a field as dirty and changed", () => {
     const form = new Form({ foo: "bar" })
 
-    form.values.setAt("foo", "bar")
+    form.setAt("foo", "bar")
 
-    expect(form.dirtyFields.get()).toEqual(["foo"])
-    expect(form.changedFields.get()).toEqual([])
+    expect(form.getDirtyFields()).toEqual(["foo"])
+    expect(form.getChangedFields()).toEqual([])
 
-    form.values.setAt("foo", "baz")
+    form.setAt("foo", "baz")
 
-    expect(form.dirtyFields.get()).toEqual(["foo"])
-    expect(form.changedFields.get()).toEqual(["foo"])
+    expect(form.getDirtyFields()).toEqual(["foo"])
+    expect(form.getChangedFields()).toEqual(["foo"])
   })
 
   it("listens", async () => {
     const form = new Form({ foo: { bar: "baz" } })
     let listener = jest.fn()
 
-    const returnedForm = form.listen(listener)
+    const unsubscribe = form.listen(listener)
 
-    expect(returnedForm === form).toBe(true)
+    await createTimeout(20)
 
-    expect(listener).toHaveBeenCalledTimes(6)
+    expect(listener).toHaveBeenCalledTimes(1)
     expect(listener).toHaveBeenCalledWith(form)
 
-    form.values.setAt("foo.bar", "yolo")
+    form.setAt("foo.bar", "yolo")
 
-    expect(listener).toHaveBeenCalledTimes(9)
+    await createTimeout(20)
+
+    expect(listener).toHaveBeenCalledTimes(2)
     expect(listener).toHaveBeenCalledWith(form)
+
+    unsubscribe()
+
+    form.setAt("foo.bar", "swag")
+
+    await createTimeout(20)
+
+    expect(listener).toHaveBeenCalledTimes(2)
   })
 
   it("deps", () => {
@@ -477,9 +658,10 @@ describe("Form", () => {
       undefined,
       `false`,
       `false`,
+      form.config.get(),
     ])
 
-    form.values.setAt("foo", "fooz")
+    form.setAt("foo", "fooz")
 
     expect(form.deps(["foo", "bar"])).toEqual([
       `["fooz","bar"]`,
@@ -489,9 +671,10 @@ describe("Form", () => {
       undefined,
       `false`,
       `false`,
+      form.config.get(),
     ])
 
-    form.errors.setAt("foo", ["error"])
+    form.setErrorsAt("foo", ["error"])
 
     expect(form.deps(["foo", "bar"])).toEqual([
       `["fooz","bar"]`,
@@ -501,6 +684,7 @@ describe("Form", () => {
       undefined,
       `false`,
       `false`,
+      form.config.get(),
     ])
 
     form.submitting.set(true)
@@ -513,6 +697,7 @@ describe("Form", () => {
       undefined,
       `true`,
       `false`,
+      form.config.get(),
     ])
 
     form.submitted.set(true)
@@ -525,9 +710,10 @@ describe("Form", () => {
       undefined,
       `true`,
       `true`,
+      form.config.get(),
     ])
 
-    form.result.set({ status: "ok" })
+    form.setResult({ status: "ok" })
 
     expect(form.deps(["foo", "bar"])).toEqual([
       `["fooz","bar"]`,
@@ -537,9 +723,10 @@ describe("Form", () => {
       `{"status":"ok"}`,
       `true`,
       `true`,
+      form.config.get(),
     ])
 
-    form.values.setAt("bar", "barz")
+    form.setAt("bar", "barz")
 
     expect(form.deps(["foo", "bar"])).toEqual([
       `["fooz","barz"]`,
@@ -549,9 +736,10 @@ describe("Form", () => {
       `{"status":"ok"}`,
       `true`,
       `true`,
+      form.config.get(),
     ])
 
-    form.errors.setAt("bar", ["yolo"])
+    form.setErrorsAt("bar", ["yolo"])
 
     expect(form.deps(["foo", "bar"])).toEqual([
       `["fooz","barz"]`,
@@ -561,6 +749,7 @@ describe("Form", () => {
       `{"status":"ok"}`,
       `true`,
       `true`,
+      form.config.get(),
     ])
 
     expect(
@@ -575,6 +764,7 @@ describe("Form", () => {
       undefined,
       `true`,
       `true`,
+      form.config.get(),
     ])
 
     expect(
@@ -590,6 +780,7 @@ describe("Form", () => {
       undefined,
       undefined,
       `true`,
+      form.config.get(),
     ])
 
     expect(
@@ -606,6 +797,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
+      form.config.get(),
     ])
 
     expect(
@@ -623,6 +815,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
+      form.config.get(),
     ])
 
     expect(
@@ -641,6 +834,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
+      form.config.get(),
     ])
 
     expect(
@@ -660,6 +854,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
+      form.config.get(),
     ])
 
     expect(
@@ -672,6 +867,181 @@ describe("Form", () => {
         errors: false,
         values: false,
       })
-    ).toEqual([`[]`, `[]`, `[]`, `[]`, undefined, undefined, undefined])
+    ).toEqual([
+      `[]`,
+      `[]`,
+      `[]`,
+      `[]`,
+      undefined,
+      undefined,
+      undefined,
+      form.config.get(),
+    ])
+
+    expect(
+      form.deps(["foo", "bar"], {
+        result: false,
+        submitting: false,
+        submitted: false,
+        changedFields: false,
+        dirtyFields: false,
+        errors: false,
+        values: false,
+        config: false,
+      })
+    ).toEqual([
+      `[]`,
+      `[]`,
+      `[]`,
+      `[]`,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ])
+
+    expect(
+      form.deps("foo", {
+        result: false,
+        submitting: false,
+        submitted: false,
+        changedFields: false,
+        dirtyFields: false,
+        errors: false,
+        values: false,
+        config: false,
+      })
+    ).toEqual([
+      `[]`,
+      `[]`,
+      `[]`,
+      `[]`,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ])
+  })
+
+  it("dirty fields and changed fields are empty initially", () => {
+    const form = new Form()
+
+    expect(form.getDirtyFields()).toEqual([])
+    expect(form.getChangedFields()).toEqual([])
+  })
+
+  it("returns and sets dirty and changed fields", () => {
+    const form = new Form()
+
+    expect(form.getDirtyFields()).toEqual([])
+    expect(form.getChangedFields()).toEqual([])
+
+    form.setDirtyFields(["foo"])
+    form.setChangedFields(["bar"])
+
+    expect(form.getDirtyFields()).toEqual(["foo"])
+    expect(form.getChangedFields()).toEqual(["bar"])
+
+    form.setDirtyFields("yolo")
+    form.setChangedFields("swag")
+
+    expect(form.getDirtyFields()).toEqual(["yolo"])
+    expect(form.getChangedFields()).toEqual(["swag"])
+  })
+
+  it("tells if a dirty or changed field is set", () => {
+    const form = new Form()
+    form.setDirtyFields(["foo", "bar"])
+    form.setChangedFields(["yolo", "swag"])
+
+    expect(form.isDirtyField("foo")).toBe(true)
+    expect(form.isChangedField("yolo")).toBe(true)
+    expect(form.isDirtyField("baz")).toBe(false)
+  })
+
+  it("adds dirty and changed fields", () => {
+    const form = new Form()
+    form.addDirtyFields("foo")
+    form.addChangedFields("yolo")
+
+    expect(form.getDirtyFields()).toEqual(["foo"])
+    expect(form.getChangedFields()).toEqual(["yolo"])
+
+    form.addDirtyFields(["bar"])
+    form.addChangedFields(["swag"])
+
+    expect(form.getDirtyFields()).toEqual(["foo", "bar"])
+    expect(form.getChangedFields()).toEqual(["yolo", "swag"])
+  })
+
+  it("does not allow duplicates inside dirty and changed fields", () => {
+    const form = new Form()
+    form.setDirtyFields(["foo", "foo"])
+    form.setChangedFields(["yolo", "yolo"])
+
+    expect(form.getDirtyFields()).toEqual(["foo"])
+    expect(form.getChangedFields()).toEqual(["yolo"])
+
+    form.addDirtyFields(["foo"])
+    form.addChangedFields(["yolo"])
+
+    expect(form.getDirtyFields()).toEqual(["foo"])
+    expect(form.getChangedFields()).toEqual(["yolo"])
+  })
+
+  it("clears dirty and changed fields at specific paths", () => {
+    const form = new Form()
+    form.setDirtyFields(["foo", "bar"])
+    form.setChangedFields(["yolo", "swag"])
+
+    expect(form.getDirtyFields()).toEqual(["foo", "bar"])
+    expect(form.getChangedFields()).toEqual(["yolo", "swag"])
+
+    form.clearDirtyFieldsAt(["bar"])
+    form.clearChangedFieldsAt(["swag"])
+
+    expect(form.getDirtyFields()).toEqual(["foo"])
+    expect(form.getChangedFields()).toEqual(["yolo"])
+
+    form.clearDirtyFieldsAt("foo")
+    form.clearChangedFieldsAt("yolo")
+
+    expect(form.getDirtyFields()).toEqual([])
+    expect(form.getChangedFields()).toEqual([])
+  })
+
+  it("clears dirty and changed fields fields", () => {
+    const form = new Form()
+
+    form.setDirtyFields(["foo"])
+    form.setChangedFields(["bar"])
+
+    expect(form.getDirtyFields()).toEqual(["foo"])
+    expect(form.getChangedFields()).toEqual(["bar"])
+
+    form.clearDirtyFields()
+
+    expect(form.getDirtyFields()).toEqual([])
+
+    form.clearChangedFields()
+
+    expect(form.getChangedFields()).toEqual([])
+  })
+
+  it("tells if form is changed or dirty", () => {
+    const form = new Form({ foo: "bar" })
+
+    expect(form.isDirty()).toBe(false)
+    expect(form.isChanged()).toBe(false)
+
+    form.setAt("foo", "bar")
+
+    expect(form.isDirty()).toBe(true)
+    expect(form.isChanged()).toBe(false)
+
+    form.setAt("foo", "baz")
+
+    expect(form.isDirty()).toBe(true)
+    expect(form.isChanged()).toBe(true)
   })
 })

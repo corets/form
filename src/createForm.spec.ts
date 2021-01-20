@@ -6,6 +6,6 @@ describe("createForm", () => {
     const form = createForm({ foo: "bar" })
 
     expect(form instanceof Form).toBe(true)
-    expect(form.values.get()).toEqual({ foo: "bar" })
+    expect(form.get()).toEqual({ foo: "bar" })
   })
 })
