@@ -185,7 +185,7 @@ describe("Form", () => {
 
   it("submits", async () => {
     const handler = jest.fn().mockResolvedValue(true)
-    const form = new Form({ foo: "bar" }).configure({ validateOnSubmit: false })
+    const form = new Form({ foo: "bar" }).config({ validateOnSubmit: false })
     form.handler(handler)
     form.setErrors({ foo: ["bar"] })
     form.setResult({ foo: "bar" })
@@ -340,7 +340,7 @@ describe("Form", () => {
 
     const validator = jest.fn().mockRejectedValue(new Error("test"))
     const form = new Form({ foo: "bar" })
-      .configure({ validateOnChange: false })
+      .config({ validateOnChange: false })
       .validator(() => ({ foo: ["error"] }))
       .validator(() => ({ bar: ["error"] }))
       .validator(validator)
@@ -394,7 +394,7 @@ describe("Form", () => {
     const handler = jest.fn()
     const validator = jest.fn()
     const form = new Form({ foo: "bar" })
-      .configure({ validateOnSubmit: false })
+      .config({ validateOnSubmit: false })
       .validator(validator)
       .handler(handler)
 
@@ -413,7 +413,7 @@ describe("Form", () => {
     expect(validator).toHaveBeenCalledTimes(1)
     expect(handler).toHaveBeenCalledTimes(3)
 
-    form.configure({ validateOnSubmit: true })
+    form.config({ validateOnSubmit: true })
 
     await form.submit()
 
@@ -434,7 +434,7 @@ describe("Form", () => {
   it("validates on submit and aborts submit on validation errors", async () => {
     const handler = jest.fn()
     const form = new Form({ foo: "bar" })
-      .configure({ validateOnSubmit: true })
+      .config({ validateOnSubmit: true })
       .validator(() => ({ foo: ["error"] }))
       .handler(handler)
 
@@ -465,7 +465,7 @@ describe("Form", () => {
   it("validates on submit and submits if there are no validation errors", async () => {
     const handler = jest.fn(() => "result")
     const form = new Form({ foo: "bar" })
-      .configure({ validateOnSubmit: true })
+      .config({ validateOnSubmit: true })
       .validator(() => undefined)
       .handler(handler)
 
@@ -495,7 +495,7 @@ describe("Form", () => {
 
   it("validates changed fields only", async () => {
     const form = new Form({ foo: "ba", bar: "ba" })
-      .configure({ validateChangedFieldsOnly: true })
+      .config({ validateChangedFieldsOnly: true })
       .schema(object({ foo: string().min(3), bar: string().min(3) }))
 
     const errors1 = await form.validate()
@@ -512,7 +512,7 @@ describe("Form", () => {
 
   it("validates on change", async () => {
     const form = new Form({ foo: "ba", bar: "ba" })
-      .configure({ validateOnChange: true })
+      .config({ validateOnChange: true })
       .schema(object({ foo: string().min(3), bar: string().min(3) }))
 
     expect(form.getErrors()).toBe(undefined)
@@ -648,7 +648,7 @@ describe("Form", () => {
   })
 
   it("listens without debounce", () => {
-    const form = new Form({ foo: { bar: "baz" } }).configure({
+    const form = new Form({ foo: { bar: "baz" } }).config({
       debounceChanges: 0,
     })
     let listener = jest.fn()
@@ -681,7 +681,7 @@ describe("Form", () => {
       undefined,
       `false`,
       `false`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     form.setAt("foo", "fooz")
@@ -694,7 +694,7 @@ describe("Form", () => {
       undefined,
       `false`,
       `false`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     form.setErrorsAt("foo", ["error"])
@@ -707,7 +707,7 @@ describe("Form", () => {
       undefined,
       `false`,
       `false`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     form.submitting.set(true)
@@ -720,7 +720,7 @@ describe("Form", () => {
       undefined,
       `true`,
       `false`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     form.submitted.set(true)
@@ -733,7 +733,7 @@ describe("Form", () => {
       undefined,
       `true`,
       `true`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     form.setResult({ status: "ok" })
@@ -746,7 +746,7 @@ describe("Form", () => {
       `{"status":"ok"}`,
       `true`,
       `true`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     form.setAt("bar", "barz")
@@ -759,7 +759,7 @@ describe("Form", () => {
       `{"status":"ok"}`,
       `true`,
       `true`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     form.setErrorsAt("bar", ["yolo"])
@@ -772,7 +772,7 @@ describe("Form", () => {
       `{"status":"ok"}`,
       `true`,
       `true`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     expect(
@@ -787,7 +787,7 @@ describe("Form", () => {
       undefined,
       `true`,
       `true`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     expect(
@@ -803,7 +803,7 @@ describe("Form", () => {
       undefined,
       undefined,
       `true`,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     expect(
@@ -820,7 +820,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     expect(
@@ -838,7 +838,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     expect(
@@ -857,7 +857,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     expect(
@@ -877,7 +877,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     expect(
@@ -898,7 +898,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.config.get(),
+      form.configuration.get(),
     ])
 
     expect(

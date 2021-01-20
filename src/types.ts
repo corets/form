@@ -54,7 +54,7 @@ export type FormConfig<TValue extends object, TResult> = {
 }
 
 export interface ObservableForm<TValue extends object = any, TResult = any> {
-  config: ObservableStore<FormConfig<TValue, TResult>>
+  configuration: ObservableStore<FormConfig<TValue, TResult>>
   values: ObservableStore<TValue>
   errors: ObservableStore<ValidationResult>
   result: ObservableValue<TResult | undefined>
@@ -107,7 +107,7 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   submit(options?: FormSubmitOptions): Promise<TResult | undefined>
   validate(options?: FormValidateOptions): Promise<ValidationResult | undefined>
 
-  configure(config: Partial<FormConfig<TValue, TResult>>): this
+  config(config: Partial<FormConfig<TValue, TResult>>): this
   validator(validator: FormValidator<TValue, TResult>): this
   schema(schema: ObjectSchema<TValue>): this
   handler(handler: FormHandler<TValue, TResult>): this

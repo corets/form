@@ -22,7 +22,7 @@ import { isEmptyErrorsArray } from "./isEmptyErrorsArray"
 
 export class Form<TValue extends object = any, TResult = any>
   implements ObservableForm<TValue, TResult> {
-  config: ObservableStore<FormConfig<TValue, TResult>>
+  configuration: ObservableStore<FormConfig<TValue, TResult>>
   values: ObservableStore<TValue>
   errors: ObservableStore<ValidationResult>
   result: ObservableValue<TResult | undefined>
@@ -32,7 +32,7 @@ export class Form<TValue extends object = any, TResult = any>
   submitted: ObservableValue<boolean>
 
   constructor(initialValues: TValue = {} as TValue) {
-    this.config = createStore({
+    this.configuration = createStore({
       handler: undefined,
       validator: undefined,
       schema: undefined,
@@ -273,12 +273,15 @@ export class Form<TValue extends object = any, TResult = any>
     notifyImmediately?: boolean
   ): FormCallbackUnsubscribe {
     const listener =
-      this.config.get().debounceChanges > 0
-        ? debounce(() => callback(this), this.config.get().debounceChanges)
+      this.configuration.get().debounceChanges > 0
+        ? debounce(
+            () => callback(this),
+            this.configuration.get().debounceChanges
+          )
         : () => callback(this)
 
     const unsubscribeCallbacks = [
-      this.config.listen(listener, notifyImmediately),
+      this.configuration.listen(listener, notifyImmediately),
       this.values.listen(listener, notifyImmediately),
       this.result.listen(listener, notifyImmediately),
       this.errors.listen(listener, notifyImmediately),
@@ -297,26 +300,26 @@ export class Form<TValue extends object = any, TResult = any>
     return unsubscribe
   }
 
-  configure(config: Partial<FormConfig<TValue, TResult>>): this {
-    this.config.put(config)
+  config(config: Partial<FormConfig<TValue, TResult>>): this {
+    this.configuration.put(config)
 
     return this
   }
 
   handler(handler: FormHandler<TValue, TResult>): this {
-    this.config.put({ handler })
+    this.configuration.put({ handler })
 
     return this
   }
 
   validator(validator: FormValidator<TValue, TResult>): this {
-    this.config.put({ validator })
+    this.configuration.put({ validator })
 
     return this
   }
 
   schema(schema: ObjectSchema<TValue>): this {
-    this.config.put({ schema })
+    this.configuration.put({ schema })
 
     return this
   }
@@ -326,7 +329,7 @@ export class Form<TValue extends object = any, TResult = any>
       return
     }
 
-    const config = this.config.get()
+    const config = this.configuration.get()
 
     const validate =
       options?.validate === true ||
@@ -370,7 +373,7 @@ export class Form<TValue extends object = any, TResult = any>
   async validate(
     options?: FormValidateOptions
   ): Promise<ValidationResult | undefined> {
-    const config = this.config.get()
+    const config = this.configuration.get()
 
     const changedFieldsOnly =
       options?.changedFieldsOnly === true ||
@@ -413,7 +416,8 @@ export class Form<TValue extends object = any, TResult = any>
 
   deps(field: string | string[], options: FormDepsOptions = {}): any[] {
     const fields = Array.isArray(field) ? field : [field]
-    const config = options.config === false ? undefined : this.config.get()
+    const config =
+      options.config === false ? undefined : this.configuration.get()
     const values =
       options.values === false ? [] : fields.map((field) => this.getAt(field))
     const errors =
@@ -450,7 +454,7 @@ export class Form<TValue extends object = any, TResult = any>
 
   protected setupValidateOnChange() {
     this.values.listen(() => {
-      if (this.config.get().validateOnChange) {
+      if (this.configuration.get().validateOnChange) {
         try {
           this.validate({ changedFieldsOnly: true })
         } catch (error) {}
@@ -459,10 +463,10 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   protected async runValidator(): Promise<ValidationResult | undefined> {
-    if (!this.config.get().validator) return
+    if (!this.configuration.get().validator) return
 
     try {
-      return this.config.get().validator!(this)
+      return this.configuration.get().validator!(this)
     } catch (error) {
       console.error("There was an error in form validator:", error)
       throw error
@@ -470,11 +474,11 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   protected async runSchema(): Promise<ValidationResult | undefined> {
-    if (!this.config.get().schema) return
+    if (!this.configuration.get().schema) return
 
     try {
       return createValidationResult(
-        await this.config.get().schema!.validateAsync(this.get())
+        await this.configuration.get().schema!.validateAsync(this.get())
       )
     } catch (error) {
       console.error("There was an error in form schema:", error)
@@ -483,9 +487,9 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   protected async runHandler(): Promise<TResult | undefined> {
-    if (this.config.get().handler) {
+    if (this.configuration.get().handler) {
       try {
-        return await this.config.get().handler!(this)
+        return await this.configuration.get().handler!(this)
       } catch (error) {
         console.error("There was an error in form handler:", error)
         throw error
