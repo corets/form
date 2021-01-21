@@ -342,7 +342,7 @@ export class Form<TValue extends object = any, TResult = any>
 
     try {
       if (validate) {
-        const errors = await this.validate()
+        const errors = await this.validate(options)
 
         if (errors) {
           this.submitting.set(false)
@@ -376,8 +376,9 @@ export class Form<TValue extends object = any, TResult = any>
     const config = this.configuration.get()
 
     const changedFieldsOnly =
-      options?.changedFieldsOnly === true ||
-      (config.validateChangedFieldsOnly && options?.changedFieldsOnly !== false)
+      options?.validateChangedFieldsOnly === true ||
+      (config.validateChangedFieldsOnly &&
+        options?.validateChangedFieldsOnly !== false)
     const keepPreviousErrors = options?.keepPreviousErrors !== false
     const persistErrors = options?.persistErrors !== false
 
@@ -456,7 +457,7 @@ export class Form<TValue extends object = any, TResult = any>
     this.values.listen(() => {
       if (this.configuration.get().validateOnChange) {
         try {
-          this.validate({ changedFieldsOnly: true })
+          this.validate({ validateChangedFieldsOnly: true })
         } catch (error) {}
       }
     }, false)

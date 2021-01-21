@@ -493,6 +493,28 @@ describe("Form", () => {
     expect(submitted).toEqual([false, true])
   })
 
+  it("passes options from submit to validate", async () => {
+    const handler = jest.fn(() => "result")
+    const form = new Form({ foo: "ba", bar: "ba" })
+      .config({ validateChangedFieldsOnly: true, validateOnSubmit: false })
+      .handler(handler)
+      .schema(object({ foo: string().min(3), bar: string().min(3) }))
+
+    await form.submit()
+
+    expect(form.getErrors()).toBe(undefined)
+
+    await form.submit({ validate: true })
+
+    expect(form.getErrors()).toBe(undefined)
+
+    await form.submit({ validate: true, validateChangedFieldsOnly: false })
+
+    expect(!!form.getErrors()).toBe(true)
+    expect(Array.isArray(form.getErrors()!.foo)).toBe(true)
+    expect(Array.isArray(form.getErrors()!.bar)).toBe(true)
+  })
+
   it("validates changed fields only", async () => {
     const form = new Form({ foo: "ba", bar: "ba" })
       .config({ validateChangedFieldsOnly: true })
@@ -531,7 +553,7 @@ describe("Form", () => {
     )
 
     const errors1 = await form.validate({
-      changedFieldsOnly: false,
+      validateChangedFieldsOnly: false,
       keepPreviousErrors: false,
     })
 
@@ -540,7 +562,7 @@ describe("Form", () => {
     expect(errors1?.bar?.length).toBe(1)
 
     const errors2 = await form.validate({
-      changedFieldsOnly: true,
+      validateChangedFieldsOnly: true,
       keepPreviousErrors: false,
     })
 
@@ -549,7 +571,7 @@ describe("Form", () => {
     form.addChangedFields("foo")
 
     const errors3 = await form.validate({
-      changedFieldsOnly: true,
+      validateChangedFieldsOnly: true,
       keepPreviousErrors: false,
     })
 
@@ -558,7 +580,7 @@ describe("Form", () => {
     expect(errors3?.bar?.length).toBe(undefined)
 
     const errors4 = await form.validate({
-      changedFieldsOnly: false,
+      validateChangedFieldsOnly: false,
       keepPreviousErrors: false,
     })
 
@@ -567,7 +589,7 @@ describe("Form", () => {
     expect(errors4?.bar?.length).toBe(1)
 
     const errors5 = await form.validate({
-      changedFieldsOnly: false,
+      validateChangedFieldsOnly: false,
       keepPreviousErrors: true,
     })
 
@@ -575,7 +597,7 @@ describe("Form", () => {
     expect(errors5?.foo?.length).toBe(1)
     expect(errors5?.bar?.length).toBe(1)
 
-    const errors6 = await form.validate({ changedFieldsOnly: true })
+    const errors6 = await form.validate({ validateChangedFieldsOnly: true })
 
     expect(errors6 !== undefined).toBe(true)
     expect(errors6?.foo?.length).toBe(1)
@@ -583,7 +605,7 @@ describe("Form", () => {
 
     form.setAt("bar", "bar")
 
-    const errors7 = await form.validate({ changedFieldsOnly: true })
+    const errors7 = await form.validate({ validateChangedFieldsOnly: true })
 
     expect(errors7 !== undefined).toBe(true)
     expect(errors7?.foo?.length).toBe(1)

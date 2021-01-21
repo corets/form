@@ -25,12 +25,12 @@ export type FormHandler<TValue extends object, TResult> = (
 ) => Promise<TResult | undefined> | TResult | undefined
 
 export type FormValidateOptions = {
-  changedFieldsOnly?: boolean
+  validateChangedFieldsOnly?: boolean
   keepPreviousErrors?: boolean
   persistErrors?: boolean
 }
 
-export type FormSubmitOptions = { validate?: boolean }
+export type FormSubmitOptions = FormValidateOptions & { validate?: boolean }
 
 export type FormDepsOptions = {
   config?: boolean
