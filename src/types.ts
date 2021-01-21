@@ -87,7 +87,7 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   setDirtyFields(newFields: string | string[]): void
   addDirtyFields(newFields: string | string[]): void
   clearDirtyFields(): void
-  clearDirtyFieldsAt(fields: string | string[]): void
+  clearDirtyField(fields: string | string[]): void
 
   isChanged(): boolean
   isChangedField(field: string): boolean

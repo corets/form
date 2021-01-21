@@ -1042,14 +1042,14 @@ describe("Form", () => {
     expect(form.getDirtyFields()).toEqual(["foo", "bar"])
     expect(form.getChangedFields()).toEqual(["yolo", "swag"])
 
-    form.clearDirtyFieldsAt(["bar"])
     form.clearChangedFieldsAt(["swag"])
+    form.clearDirtyField(["bar"])
 
     expect(form.getDirtyFields()).toEqual(["foo"])
     expect(form.getChangedFields()).toEqual(["yolo"])
 
-    form.clearDirtyFieldsAt("foo")
     form.clearChangedFieldsAt("yolo")
+    form.clearDirtyField("foo")
 
     expect(form.getDirtyFields()).toEqual([])
     expect(form.getChangedFields()).toEqual([])

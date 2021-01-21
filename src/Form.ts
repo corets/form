@@ -200,7 +200,7 @@ export class Form<TValue extends object = any, TResult = any>
     this.dirtyFields.reset()
   }
 
-  clearDirtyFieldsAt(fields: string | string[]): void {
+  clearDirtyField(fields: string | string[]): void {
     if (!Array.isArray(fields)) {
       fields = [fields]
     }
