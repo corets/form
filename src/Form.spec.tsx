@@ -42,7 +42,7 @@ describe("Form", () => {
     expect(form.get()).toEqual({ foo: "bar", yolo: "swag" })
   })
 
-  it("resets everything to initial values", () => {
+  it("clears everything and resets to initial values", () => {
     const form = new Form<any>({ foo: "bar" })
 
     form.set({ yolo: "swag" })
@@ -53,7 +53,7 @@ describe("Form", () => {
     form.setErrors({ foo: ["bar"] })
     form.setResult({ foo: ["bar"] })
 
-    form.reset()
+    form.clear()
 
     expect(form.get()).toEqual({ foo: "bar" })
     expect(form.isSubmitting()).toEqual(false)

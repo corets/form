@@ -68,7 +68,7 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   set(newValues: TValue): void
   setAt(path: string, value: any): void
   put(newValues: Partial<TValue>): void
-  reset(initialValues?: TValue): void
+  clear(initialValues?: TValue): void
 
   getErrors(): ValidationResult | undefined
   getErrorsAt(path: string): string[] | undefined

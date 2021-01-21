@@ -82,7 +82,7 @@ export class Form<TValue extends object = any, TResult = any>
     this.values.put(newValues)
   }
 
-  reset(initialValues?: TValue): void {
+  clear(initialValues?: TValue): void {
     this.values.reset(initialValues)
     this.submitting.reset()
     this.submitted.reset()
