@@ -240,7 +240,7 @@ export class Form<TValue extends object = any, TResult = any>
     this.changedFields.reset()
   }
 
-  clearChangedFieldsAt(fields: string | string[]): void {
+  clearChangedField(fields: string | string[]): void {
     if (!Array.isArray(fields)) {
       fields = [fields]
     }

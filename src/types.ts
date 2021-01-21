@@ -95,7 +95,7 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   setChangedFields(newFields: string | string[]): void
   addChangedFields(newFields: string | string[]): void
   clearChangedFields(): void
-  clearChangedFieldsAt(fields: string | string[]): void
+  clearChangedField(fields: string | string[]): void
 
   getResult(): TResult | undefined
   setResult(newValue: TResult | undefined): void
