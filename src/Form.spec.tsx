@@ -125,6 +125,7 @@ describe("Form", () => {
 
   it("clears errors", () => {
     const form = new Form()
+
     form.setErrors({ foo: ["error"] })
 
     form.clearErrors()
@@ -134,6 +135,13 @@ describe("Form", () => {
 
   it("returns error at given path", () => {
     const form = new Form()
+
+    expect(form.getErrors()).toBe(undefined)
+
+    form.clearErrorsAt("foo")
+
+    expect(form.getErrors()).toBe(undefined)
+
     form.setErrors({ foo: ["bar"] })
 
     expect(form.getErrorsAt("foo")).toEqual(["bar"])
@@ -209,6 +217,13 @@ describe("Form", () => {
     expect(submitted).toEqual([false, true])
     expect(form.getErrors()).toEqual(undefined)
     expect(form.getResult()).toEqual(true)
+  })
+
+  it("submits without handler", async () => {
+    const form = new Form()
+    let result = await form.submit()
+
+    expect(result).toBe(undefined)
   })
 
   it("does not submit if already submitting", async () => {
@@ -316,6 +331,76 @@ describe("Form", () => {
     expect(typeof errors.foo[0] === "string").toBe(true)
     expect(errors.bar.length).toBe(1)
     expect(typeof errors.bar[0] === "string").toBe(true)
+  })
+
+  it("sanitizes with schema", async () => {
+    const form = new Form({ foo: "bar" }).schema(
+      object({
+        foo: string().min(4).toDefault("1234"),
+        bar: string().min(4).toDefault("5678"),
+      })
+    )
+
+    expect(form.get()).toEqual({ foo: "bar" })
+
+    const errors = (await form.validate())!
+
+    expect(!!errors).toBe(true)
+    expect(!!errors.foo).toBe(true)
+    expect(!!errors.bar).toBe(false)
+    expect(form.get()).toEqual({ foo: "bar", bar: "5678" })
+  })
+
+  it("validates without sanitization", async () => {
+    const form = new Form({ foo: "bar" }).schema(
+      object({
+        foo: string().min(4).toDefault("1234"),
+        bar: string().min(4).toDefault("5678"),
+      })
+    )
+
+    expect(form.get()).toEqual({ foo: "bar" })
+
+    const errors = (await form.validate({ sanitize: false }))!
+
+    expect(!!errors).toBe(true)
+    expect(!!errors.foo).toBe(true)
+    expect(!!errors.bar).toBe(true)
+    expect(form.get()).toEqual({ foo: "bar" })
+  })
+
+  it("rethrows errors from schema validator", () => {
+    const consoleError = jest.fn()
+    console.error = consoleError
+
+    const form = new Form({ foo: "bar" })
+      .config({ validateOnChange: false })
+      .schema({
+        sanitizeAsync: async () => ({}),
+        validateAsync: async () => {
+          throw new Error()
+        },
+      } as any)
+
+    expect(() => form.validate()).rejects.toThrow()
+
+    console.error = consoleError
+  })
+
+  it("rethrows errors from schema sanitizer", () => {
+    const consoleError = jest.fn()
+    console.error = consoleError
+
+    const form = new Form({ foo: "bar" }).schema({
+      sanitizeAsync: async () => {
+        throw new Error()
+      },
+      validateAsync: async () => undefined,
+    } as any)
+
+    expect(() => form.validate()).rejects.toThrow()
+
+    console.error = consoleError
   })
 
   it("validates with function", async () => {
@@ -545,6 +630,20 @@ describe("Form", () => {
 
     expect(form.getErrors()).not.toBe(undefined)
     expect(form.getErrors()!.foo.length).toBe(1)
+  })
+
+  it("validates on change can be disabled", async () => {
+    const form = new Form({ foo: "ba", bar: "ba" })
+      .config({ validateOnChange: false })
+      .schema(object({ foo: string().min(3), bar: string().min(3) }))
+
+    expect(form.getErrors()).toBe(undefined)
+
+    form.setAt("foo", "b")
+
+    await createTimeout(0)
+
+    expect(form.getErrors()).toBe(undefined)
   })
 
   it("validates changed fields but keeps previous errors", async () => {

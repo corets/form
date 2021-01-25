@@ -28,6 +28,7 @@ export type FormValidateOptions = {
   validateChangedFieldsOnly?: boolean
   keepPreviousErrors?: boolean
   persistErrors?: boolean
+  sanitize?: boolean
 }
 
 export type FormSubmitOptions = FormValidateOptions & { validate?: boolean }

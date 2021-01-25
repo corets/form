@@ -10,11 +10,7 @@ import {
   FormCallbackUnsubscribe,
 } from "./types"
 import { debounce, difference, get, isEqual, merge, set, uniq } from "lodash-es"
-import {
-  createValidationResult,
-  ObjectSchema,
-  ValidationResult,
-} from "@corets/schema"
+import { ObjectSchema, ValidationResult } from "@corets/schema"
 import { isEmptyErrorsObject } from "./isEmptyErrorsObject"
 import { createStore, ObservableStore } from "@corets/store"
 import { createValue, ObservableValue } from "@corets/value"
@@ -291,11 +287,10 @@ export class Form<TValue extends object = any, TResult = any>
       this.submitted.listen(listener, notifyImmediately),
     ]
 
-    const unsubscribe = () => {
+    const unsubscribe = () =>
       unsubscribeCallbacks.forEach((unsubscribeCallback) =>
         unsubscribeCallback()
       )
-    }
 
     return unsubscribe
   }
@@ -381,9 +376,14 @@ export class Form<TValue extends object = any, TResult = any>
         options?.validateChangedFieldsOnly !== false)
     const keepPreviousErrors = options?.keepPreviousErrors !== false
     const persistErrors = options?.persistErrors !== false
+    const sanitize = options?.sanitize !== false
 
+    if (sanitize) {
+      await this.runSchemaSanitizer()
+    }
+
+    const schemaErrors = await this.runSchemaValidator()
     const validatorErrors = await this.runValidator()
-    const schemaErrors = await this.runSchema()
     const errorsFromDifferentSources = [validatorErrors, schemaErrors]
     const newErrors = errorsFromDifferentSources.reduce((errors, errorSet) => {
       return merge({}, errors, errorSet)
@@ -457,40 +457,61 @@ export class Form<TValue extends object = any, TResult = any>
     this.values.listen(() => {
       if (this.configuration.get().validateOnChange) {
         try {
-          this.validate({ validateChangedFieldsOnly: true })
+          this.validate({ validateChangedFieldsOnly: true, sanitize: false })
         } catch (error) {}
       }
     }, false)
   }
 
   protected async runValidator(): Promise<ValidationResult | undefined> {
-    if (!this.configuration.get().validator) return
+    const configuration = this.configuration.get()
+
+    if (!configuration.validator) return
 
     try {
-      return this.configuration.get().validator!(this)
+      return configuration.validator!(this)
     } catch (error) {
       console.error("There was an error in form validator:", error)
       throw error
     }
   }
 
-  protected async runSchema(): Promise<ValidationResult | undefined> {
-    if (!this.configuration.get().schema) return
+  protected async runSchemaSanitizer(): Promise<void> {
+    const configuration = this.configuration.get()
+
+    if (!configuration.schema) return
 
     try {
-      return createValidationResult(
-        await this.configuration.get().schema!.validateAsync(this.get())
+      const sanitizedValues = await configuration.schema!.sanitizeAsync<TValue>(
+        this.get()
       )
+
+      this.set(sanitizedValues)
     } catch (error) {
-      console.error("There was an error in form schema:", error)
+      console.error("There was an error in form schema sanitizer:", error)
+      throw error
+    }
+  }
+
+  protected async runSchemaValidator(): Promise<ValidationResult | undefined> {
+    const configuration = this.configuration.get()
+
+    if (!configuration.schema) return
+
+    try {
+      return await configuration.schema!.validateAsync(this.get())
+    } catch (error) {
+      console.error("There was an error in form schema validator:", error)
       throw error
     }
   }
 
   protected async runHandler(): Promise<TResult | undefined> {
-    if (this.configuration.get().handler) {
+    const configuration = this.configuration.get()
+
+    if (configuration.handler) {
       try {
-        return await this.configuration.get().handler!(this)
+        return await configuration.handler!(this)
       } catch (error) {
         console.error("There was an error in form handler:", error)
         throw error
