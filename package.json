@@ -1,5 +1,6 @@
 {
   "name": "@corets/form",
+  "description": "Easy to use form library that works everywhere, including React",
   "version": "0.0.1-12",
   "author": "Maxim Kott",
   "license": "MIT",
@@ -14,6 +15,7 @@
     "/dist"
   ],
   "repository": "github:corets/form",
+  "homepage": "https://corets.github.io/form",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
