@@ -8,6 +8,7 @@ import {
   FormValidator,
   ObservableForm,
   FormCallbackUnsubscribe,
+  FormListenOptions,
 } from "./types"
 import { debounce, difference, get, isEqual, merge, set, uniq } from "lodash-es"
 import { ObjectSchema, ValidationResult } from "@corets/schema"
@@ -18,8 +19,9 @@ import { isEmptyErrorsArray } from "./isEmptyErrorsArray"
 
 export class Form<TValue extends object = any, TResult = any>
   implements ObservableForm<TValue, TResult> {
+  initialValue: TValue
   configuration: ObservableStore<FormConfig<TValue, TResult>>
-  values: ObservableStore<TValue>
+  value: ObservableStore<TValue>
   errors: ObservableStore<ValidationResult>
   result: ObservableValue<TResult | undefined>
   dirtyFields: ObservableValue<string[]>
@@ -27,17 +29,20 @@ export class Form<TValue extends object = any, TResult = any>
   submitting: ObservableValue<boolean>
   submitted: ObservableValue<boolean>
 
-  constructor(initialValues: TValue = {} as TValue) {
+  constructor(initialValue: TValue = {} as TValue) {
     this.configuration = createStore({
       handler: undefined,
       validator: undefined,
       schema: undefined,
       validateChangedFieldsOnly: false,
+      sanitizeChangedFieldsOnly: false,
       validateOnChange: true,
       validateOnSubmit: true,
-      debounceChanges: 10,
+      debounce: 10,
+      sanitize: true,
     })
-    this.values = createStore(initialValues)
+    this.initialValue = initialValue
+    this.value = createStore(initialValue)
     this.errors = createStore({})
     this.result = createValue(undefined)
     this.dirtyFields = createValue([])
@@ -49,7 +54,7 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   get(): TValue {
-    return this.values.get()
+    return this.value.get()
   }
 
   getAt(path: string): any {
@@ -57,7 +62,7 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   set(newValues: TValue): void {
-    this.values.set(newValues)
+    this.value.set(newValues)
   }
 
   setAt(path: string, newValue: any): void {
@@ -65,7 +70,7 @@ export class Form<TValue extends object = any, TResult = any>
 
     this.set(newValues)
 
-    const oldValue = get(this.values.initialValue, path)
+    const oldValue = get(this.initialValue, path)
 
     if (!isEqual(oldValue, newValue)) {
       this.addChangedFields(path)
@@ -75,17 +80,21 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   put(newValues: Partial<TValue>): void {
-    this.values.put(newValues)
+    this.value.put(newValues)
   }
 
-  clear(initialValues?: TValue): void {
-    this.values.reset(initialValues)
-    this.submitting.reset()
-    this.submitted.reset()
-    this.dirtyFields.reset()
-    this.changedFields.reset()
-    this.errors.reset()
-    this.result.reset()
+  clear(initialValue?: TValue): void {
+    if (initialValue) {
+      this.initialValue = initialValue
+    }
+
+    this.value.set(this.initialValue)
+    this.submitting.set(false)
+    this.submitted.set(false)
+    this.clearDirtyFields()
+    this.clearChangedFields()
+    this.clearErrors()
+    this.clearResult()
   }
 
   getErrors(): ValidationResult | undefined {
@@ -147,7 +156,7 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   clearErrors(): void {
-    this.errors.reset()
+    this.errors.set({})
   }
 
   clearErrorsAt(path: string | string[]): void {
@@ -193,7 +202,7 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   clearDirtyFields(): void {
-    this.dirtyFields.reset()
+    this.dirtyFields.set([])
   }
 
   clearDirtyField(fields: string | string[]): void {
@@ -233,7 +242,7 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   clearChangedFields(): void {
-    this.changedFields.reset()
+    this.changedFields.set([])
   }
 
   clearChangedField(fields: string | string[]): void {
@@ -253,38 +262,47 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   clearResult(): void {
-    this.result.reset()
+    this.result.set(undefined)
   }
 
   isSubmitting(): boolean {
     return this.submitting.get()
   }
 
+  setSubmitting(submitting: boolean) {
+    this.submitting.set(submitting)
+  }
+
   isSubmitted(): boolean {
     return this.submitted.get()
   }
 
+  setSubmitted(submitted: boolean) {
+    this.submitted.set(submitted)
+  }
+
   listen(
     callback: FormCallback<TValue, TResult>,
-    notifyImmediately?: boolean
+    options?: FormListenOptions
   ): FormCallbackUnsubscribe {
+    const debounceChanges =
+      options?.debounce ?? this.configuration.get().debounce
+    const immediate = options?.immediate
+
     const listener =
-      this.configuration.get().debounceChanges > 0
-        ? debounce(
-            () => callback(this),
-            this.configuration.get().debounceChanges
-          )
+      debounceChanges > 0
+        ? debounce(() => callback(this), debounceChanges)
         : () => callback(this)
 
     const unsubscribeCallbacks = [
-      this.configuration.listen(listener, notifyImmediately),
-      this.values.listen(listener, notifyImmediately),
-      this.result.listen(listener, notifyImmediately),
-      this.errors.listen(listener, notifyImmediately),
-      this.dirtyFields.listen(listener, notifyImmediately),
-      this.changedFields.listen(listener, notifyImmediately),
-      this.submitting.listen(listener, notifyImmediately),
-      this.submitted.listen(listener, notifyImmediately),
+      this.configuration.listen(listener, { immediate }),
+      this.value.listen(listener, { immediate }),
+      this.result.listen(listener, { immediate }),
+      this.errors.listen(listener, { immediate }),
+      this.dirtyFields.listen(listener, { immediate }),
+      this.changedFields.listen(listener, { immediate }),
+      this.submitting.listen(listener, { immediate }),
+      this.submitted.listen(listener, { immediate }),
     ]
 
     const unsubscribe = () =>
@@ -330,8 +348,8 @@ export class Form<TValue extends object = any, TResult = any>
       options?.validate === true ||
       (config.validateOnSubmit && options?.validate !== false)
 
-    this.result.reset()
-    this.errors.reset()
+    this.clearResult()
+    this.clearErrors()
 
     this.submitting.set(true)
 
@@ -370,16 +388,16 @@ export class Form<TValue extends object = any, TResult = any>
   ): Promise<ValidationResult | undefined> {
     const config = this.configuration.get()
 
-    const changedFieldsOnly =
-      options?.validateChangedFieldsOnly === true ||
-      (config.validateChangedFieldsOnly &&
-        options?.validateChangedFieldsOnly !== false)
+    const validateChangedFieldsOnly =
+      options?.validateChangedFieldsOnly ?? config.validateChangedFieldsOnly
+    const sanitizeChangedFieldsOnly =
+      options?.sanitizeChangedFieldsOnly ?? config.sanitizeChangedFieldsOnly
     const keepPreviousErrors = options?.keepPreviousErrors !== false
     const persistErrors = options?.persistErrors !== false
-    const sanitize = options?.sanitize !== false
+    const sanitize = options?.sanitize ?? config.sanitize
 
     if (sanitize) {
-      await this.runSchemaSanitizer()
+      await this.runSchemaSanitizer(sanitizeChangedFieldsOnly)
     }
 
     const schemaErrors = await this.runSchemaValidator()
@@ -389,7 +407,7 @@ export class Form<TValue extends object = any, TResult = any>
       return merge({}, errors, errorSet)
     }, {})!
 
-    if (changedFieldsOnly) {
+    if (validateChangedFieldsOnly) {
       const oldErrorKeys = Object.keys(this.getErrors() || {})
       const newErrorKeys = Object.keys(newErrors)
       const changedFields = this.getChangedFields()
@@ -454,13 +472,13 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   protected setupValidateOnChange() {
-    this.values.listen(() => {
+    this.value.listen(() => {
       if (this.configuration.get().validateOnChange) {
         try {
           this.validate({ validateChangedFieldsOnly: true, sanitize: false })
         } catch (error) {}
       }
-    }, false)
+    })
   }
 
   protected async runValidator(): Promise<ValidationResult | undefined> {
@@ -476,17 +494,30 @@ export class Form<TValue extends object = any, TResult = any>
     }
   }
 
-  protected async runSchemaSanitizer(): Promise<void> {
+  protected async runSchemaSanitizer(
+    sanitizeChangedFieldsOnly: boolean
+  ): Promise<void> {
     const configuration = this.configuration.get()
 
     if (!configuration.schema) return
 
     try {
-      const sanitizedValues = await configuration.schema!.sanitizeAsync<TValue>(
-        this.get()
-      )
+      if (sanitizeChangedFieldsOnly) {
+        if (this.changedFields.get().length > 0) {
+          const sanitizedValues = await configuration.schema!.sanitizeAsync<TValue>(
+            this.get()
+          )
 
-      this.set(sanitizedValues)
+          this.changedFields.get().forEach((field) => {
+            this.setAt(field, get(sanitizedValues, field))
+          })
+        }
+      } else {
+        const sanitizedValues = await configuration.schema!.sanitizeAsync<TValue>(
+          this.get()
+        )
+        this.set(sanitizedValues)
+      }
     } catch (error) {
       console.error("There was an error in form schema sanitizer:", error)
       throw error

@@ -1,6 +1,4 @@
-import { ObservableValue } from "@corets/value"
 import { ObjectSchema, ValidationResult } from "@corets/schema"
-import { ObservableStore } from "@corets/store"
 
 export type CreateForm = <TValue extends object = any, TResult = any>(
   initialValue?: TValue
@@ -26,6 +24,7 @@ export type FormHandler<TValue extends object, TResult> = (
 
 export type FormValidateOptions = {
   validateChangedFieldsOnly?: boolean
+  sanitizeChangedFieldsOnly?: boolean
   keepPreviousErrors?: boolean
   persistErrors?: boolean
   sanitize?: boolean
@@ -50,26 +49,24 @@ export type FormConfig<TValue extends object, TResult> = {
   handler: FormHandler<TValue, TResult> | undefined
   validateOnSubmit: boolean
   validateChangedFieldsOnly: boolean
+  sanitizeChangedFieldsOnly: boolean
   validateOnChange: boolean
-  debounceChanges: number
+  sanitize: boolean
+  debounce: number
+}
+
+export type FormListenOptions = {
+  immediate?: boolean
+  debounce?: number
 }
 
 export interface ObservableForm<TValue extends object = any, TResult = any> {
-  configuration: ObservableStore<FormConfig<TValue, TResult>>
-  values: ObservableStore<TValue>
-  errors: ObservableStore<ValidationResult>
-  result: ObservableValue<TResult | undefined>
-  dirtyFields: ObservableValue<string[]>
-  changedFields: ObservableValue<string[]>
-  submitting: ObservableValue<boolean>
-  submitted: ObservableValue<boolean>
-
   get(): TValue
   getAt(path: string): any
   set(newValues: TValue): void
   setAt(path: string, value: any): void
   put(newValues: Partial<TValue>): void
-  clear(initialValues?: TValue): void
+  clear(initialValue?: TValue): void
 
   getErrors(): ValidationResult | undefined
   getErrorsAt(path: string): string[] | undefined
@@ -103,7 +100,9 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   clearResult(): void
 
   isSubmitting(): boolean
+  setSubmitting(submitted: boolean): void
   isSubmitted(): boolean
+  setSubmitted(submitted: boolean): void
 
   submit(options?: FormSubmitOptions): Promise<TResult | undefined>
   validate(options?: FormValidateOptions): Promise<ValidationResult | undefined>
@@ -115,7 +114,7 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
 
   listen(
     callback: FormCallback<TValue, TResult>,
-    notifyImmediately?: boolean
+    options?: FormListenOptions
   ): FormCallbackUnsubscribe
 
   deps(field: string | string[], options?: FormDepsOptions): any[]

@@ -64,6 +64,16 @@ describe("Form", () => {
     expect(form.getResult()).toEqual(undefined)
   })
 
+  it("clears everything with custom initial values", () => {
+    const form = new Form<any>({ foo: "bar" })
+
+    form.set({ yolo: "swag" })
+
+    form.clear({ foo: "baz" })
+
+    expect(form.get()).toEqual({ foo: "baz" })
+  })
+
   it("returns and sets errors", () => {
     const form = new Form()
 
@@ -199,14 +209,20 @@ describe("Form", () => {
     form.setResult({ foo: "bar" })
 
     const submitting: any[] = []
-    form.submitting.listen((value) => {
-      submitting.push(value)
-    })
+    form.submitting.listen(
+      (value) => {
+        submitting.push(value)
+      },
+      { immediate: true }
+    )
 
     const submitted: any[] = []
-    form.submitted.listen((value) => {
-      submitted.push(value)
-    })
+    form.submitted.listen(
+      (value) => {
+        submitted.push(value)
+      },
+      { immediate: true }
+    )
 
     let result = await form.submit()
 
@@ -230,7 +246,7 @@ describe("Form", () => {
     const handler = jest.fn()
     const form = createForm().handler(handler)
 
-    form.submitting.set(true)
+    form.setSubmitting(true)
 
     await form.submit()
 
@@ -294,14 +310,20 @@ describe("Form", () => {
     form.handler(handler)
 
     const submitting: any[] = []
-    form.submitting.listen((value) => {
-      submitting.push(value)
-    })
+    form.submitting.listen(
+      (value) => {
+        submitting.push(value)
+      },
+      { immediate: true }
+    )
 
     const submitted: any[] = []
-    form.submitted.listen((value) => {
-      submitted.push(value)
-    })
+    form.submitted.listen(
+      (value) => {
+        submitted.push(value)
+      },
+      { immediate: true }
+    )
 
     let receivedError: any
 
@@ -524,19 +546,28 @@ describe("Form", () => {
       .handler(handler)
 
     const submitting: any[] = []
-    form.submitting.listen((value) => {
-      submitting.push(value)
-    })
+    form.submitting.listen(
+      (value) => {
+        submitting.push(value)
+      },
+      { immediate: true }
+    )
 
     const submitted: any[] = []
-    form.submitted.listen((value) => {
-      submitted.push(value)
-    })
+    form.submitted.listen(
+      (value) => {
+        submitted.push(value)
+      },
+      { immediate: true }
+    )
 
     const errors: any[] = []
-    form.errors.listen((value) => {
-      errors.push(value)
-    })
+    form.errors.listen(
+      (value) => {
+        errors.push(value)
+      },
+      { immediate: true }
+    )
 
     const status = await form.submit()
 
@@ -555,19 +586,28 @@ describe("Form", () => {
       .handler(handler)
 
     const submitting: any[] = []
-    form.submitting.listen((value) => {
-      submitting.push(value)
-    })
+    form.submitting.listen(
+      (value) => {
+        submitting.push(value)
+      },
+      { immediate: true }
+    )
 
     const submitted: any[] = []
-    form.submitted.listen((value) => {
-      submitted.push(value)
-    })
+    form.submitted.listen(
+      (value) => {
+        submitted.push(value)
+      },
+      { immediate: true }
+    )
 
     const errors: any[] = []
-    form.errors.listen((value) => {
-      errors.push(value)
-    })
+    form.errors.listen(
+      (value) => {
+        errors.push(value)
+      },
+      { immediate: true }
+    )
 
     const status = await form.submit()
 
@@ -601,9 +641,17 @@ describe("Form", () => {
   })
 
   it("validates changed fields only", async () => {
-    const form = new Form({ foo: "ba", bar: "ba" })
-      .config({ validateChangedFieldsOnly: true })
-      .schema(object({ foo: string().min(3), bar: string().min(3) }))
+    const form = new Form({ foo: "ba  ", bar: "ba  " })
+      .config({
+        validateChangedFieldsOnly: true,
+        sanitizeChangedFieldsOnly: true,
+      })
+      .schema(
+        object({
+          foo: string().min(3).toTrimmed(),
+          bar: string().min(3).toTrimmed(),
+        })
+      )
 
     const errors1 = await form.validate()
 
@@ -615,6 +663,8 @@ describe("Form", () => {
 
     expect(errors2.foo.length).toBe(1)
     expect(typeof errors2.foo[0] === "string").toBe(true)
+    expect(form.get().foo).toBe("ba")
+    expect(form.get().bar).toBe("ba  ")
   })
 
   it("validates on change", async () => {
@@ -749,6 +799,32 @@ describe("Form", () => {
 
     await createTimeout(20)
 
+    expect(listener).toHaveBeenCalledTimes(0)
+
+    form.setAt("foo.bar", "yolo")
+
+    await createTimeout(20)
+
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledWith(form)
+
+    unsubscribe()
+
+    form.setAt("foo.bar", "swag")
+
+    await createTimeout(20)
+
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  it("listens with immediate", async () => {
+    const form = new Form({ foo: { bar: "baz" } })
+    let listener = jest.fn()
+
+    const unsubscribe = form.listen(listener, { immediate: true })
+
+    await createTimeout(20)
+
     expect(listener).toHaveBeenCalledTimes(1)
     expect(listener).toHaveBeenCalledWith(form)
 
@@ -769,12 +845,10 @@ describe("Form", () => {
   })
 
   it("listens without debounce", () => {
-    const form = new Form({ foo: { bar: "baz" } }).config({
-      debounceChanges: 0,
-    })
+    const form = new Form({ foo: { bar: "baz" } }).config({ debounce: 0 })
     let listener = jest.fn()
 
-    const unsubscribe = form.listen(listener)
+    const unsubscribe = form.listen(listener, { immediate: true })
 
     expect(listener).toHaveBeenCalledTimes(7)
     expect(listener).toHaveBeenCalledWith(form)
@@ -1187,5 +1261,25 @@ describe("Form", () => {
 
     expect(form.isDirty()).toBe(true)
     expect(form.isChanged()).toBe(true)
+  })
+
+  it("tells if form is submitting", () => {
+    const form = new Form({ foo: "bar" })
+
+    expect(form.isSubmitting()).toBe(false)
+
+    form.setSubmitting(true)
+
+    expect(form.isSubmitting()).toBe(true)
+  })
+
+  it("tells if form is submitted", () => {
+    const form = new Form({ foo: "bar" })
+
+    expect(form.isSubmitted()).toBe(false)
+
+    form.setSubmitted(true)
+
+    expect(form.isSubmitted()).toBe(true)
   })
 })
