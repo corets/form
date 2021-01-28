@@ -1,13 +1,13 @@
 import {
   FormDepsOptions,
-  FormCallback,
+  FormListener,
   FormConfig,
   FormHandler,
   FormSubmitOptions,
   FormValidateOptions,
   FormValidator,
   ObservableForm,
-  FormCallbackUnsubscribe,
+  FormListenerUnsubscribe,
   FormListenOptions,
 } from "./types"
 import { debounce, difference, get, isEqual, merge, set, uniq } from "lodash-es"
@@ -34,13 +34,12 @@ export class Form<TValue extends object = any, TResult = any>
       handler: undefined,
       validator: undefined,
       schema: undefined,
-      validateChangedFieldsOnly: false,
-      sanitizeChangedFieldsOnly: false,
-      validateOnChange: true,
-      validateOnSubmit: true,
       debounce: 10,
+      reactive: true,
+      validate: true,
       sanitize: true,
     })
+
     this.initialValue = initialValue
     this.value = createStore(initialValue)
     this.errors = createStore({})
@@ -50,7 +49,7 @@ export class Form<TValue extends object = any, TResult = any>
     this.submitting = createValue(false)
     this.submitted = createValue(false)
 
-    this.setupValidateOnChange()
+    this.setupReactiveBehaviour()
   }
 
   get(): TValue {
@@ -282,9 +281,9 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   listen(
-    callback: FormCallback<TValue, TResult>,
+    callback: FormListener<TValue, TResult>,
     options?: FormListenOptions
-  ): FormCallbackUnsubscribe {
+  ): FormListenerUnsubscribe {
     const debounceChanges =
       options?.debounce ?? this.configuration.get().debounce
     const immediate = options?.immediate
@@ -344,9 +343,9 @@ export class Form<TValue extends object = any, TResult = any>
 
     const config = this.configuration.get()
 
-    const validate =
-      options?.validate === true ||
-      (config.validateOnSubmit && options?.validate !== false)
+    const validate = options?.validate ?? config.validate
+    const sanitize = options?.sanitize ?? config.sanitize
+    const changed = options?.changed ?? false
 
     this.clearResult()
     this.clearErrors()
@@ -354,8 +353,16 @@ export class Form<TValue extends object = any, TResult = any>
     this.submitting.set(true)
 
     try {
+      if (sanitize) {
+        await this.runSchemaSanitizer(changed)
+      }
+
       if (validate) {
-        const errors = await this.validate(options)
+        const errors = await this.validate({
+          changed,
+          persist: true,
+          sanitize: false,
+        })
 
         if (errors) {
           this.submitting.set(false)
@@ -388,16 +395,12 @@ export class Form<TValue extends object = any, TResult = any>
   ): Promise<ValidationResult | undefined> {
     const config = this.configuration.get()
 
-    const validateChangedFieldsOnly =
-      options?.validateChangedFieldsOnly ?? config.validateChangedFieldsOnly
-    const sanitizeChangedFieldsOnly =
-      options?.sanitizeChangedFieldsOnly ?? config.sanitizeChangedFieldsOnly
-    const keepPreviousErrors = options?.keepPreviousErrors !== false
-    const persistErrors = options?.persistErrors !== false
+    const changed = options?.changed ?? false
     const sanitize = options?.sanitize ?? config.sanitize
+    const persist = options?.persist ?? true
 
     if (sanitize) {
-      await this.runSchemaSanitizer(sanitizeChangedFieldsOnly)
+      await this.runSchemaSanitizer(changed)
     }
 
     const schemaErrors = await this.runSchemaValidator()
@@ -407,7 +410,7 @@ export class Form<TValue extends object = any, TResult = any>
       return merge({}, errors, errorSet)
     }, {})!
 
-    if (validateChangedFieldsOnly) {
+    if (changed) {
       const oldErrorKeys = Object.keys(this.getErrors() || {})
       const newErrorKeys = Object.keys(newErrors)
       const changedFields = this.getChangedFields()
@@ -418,7 +421,7 @@ export class Form<TValue extends object = any, TResult = any>
 
         if (fieldHasChanged) {
           // keep
-        } else if (fieldAlreadyHadAnError && keepPreviousErrors) {
+        } else if (fieldAlreadyHadAnError) {
           // keep
         } else {
           delete newErrors[key]
@@ -426,7 +429,7 @@ export class Form<TValue extends object = any, TResult = any>
       })
     }
 
-    if (persistErrors) {
+    if (persist) {
       this.setErrors(newErrors)
     }
 
@@ -471,16 +474,6 @@ export class Form<TValue extends object = any, TResult = any>
     return deps
   }
 
-  protected setupValidateOnChange() {
-    this.value.listen(() => {
-      if (this.configuration.get().validateOnChange) {
-        try {
-          this.validate({ validateChangedFieldsOnly: true, sanitize: false })
-        } catch (error) {}
-      }
-    })
-  }
-
   protected async runValidator(): Promise<ValidationResult | undefined> {
     const configuration = this.configuration.get()
 
@@ -495,16 +488,16 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   protected async runSchemaSanitizer(
-    sanitizeChangedFieldsOnly: boolean
+    changedFieldsOnly: boolean
   ): Promise<void> {
-    const configuration = this.configuration.get()
+    const config = this.configuration.get()
 
-    if (!configuration.schema) return
+    if (!config.schema) return
 
     try {
-      if (sanitizeChangedFieldsOnly) {
+      if (changedFieldsOnly) {
         if (this.changedFields.get().length > 0) {
-          const sanitizedValues = await configuration.schema!.sanitizeAsync<TValue>(
+          const sanitizedValues = await config.schema!.sanitizeAsync<TValue>(
             this.get()
           )
 
@@ -513,7 +506,7 @@ export class Form<TValue extends object = any, TResult = any>
           })
         }
       } else {
-        const sanitizedValues = await configuration.schema!.sanitizeAsync<TValue>(
+        const sanitizedValues = await config.schema!.sanitizeAsync<TValue>(
           this.get()
         )
         this.set(sanitizedValues)
@@ -548,5 +541,29 @@ export class Form<TValue extends object = any, TResult = any>
         throw error
       }
     }
+  }
+
+  protected setupReactiveBehaviour() {
+    this.value.listen(async () => {
+      try {
+        const reactive = this.configuration.get().reactive
+        const validate = this.configuration.get().validate
+        const sanitize = this.configuration.get().sanitize
+
+        if (reactive) {
+          if (sanitize) {
+            await this.runSchemaSanitizer(true)
+          }
+
+          if (validate) {
+            await this.validate({
+              sanitize: false,
+              persist: true,
+              changed: true,
+            })
+          }
+        }
+      } catch (err) {}
+    })
   }
 }

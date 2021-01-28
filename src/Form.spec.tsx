@@ -203,7 +203,7 @@ describe("Form", () => {
 
   it("submits", async () => {
     const handler = jest.fn().mockResolvedValue(true)
-    const form = new Form({ foo: "bar" }).config({ validateOnSubmit: false })
+    const form = new Form({ foo: "bar" }).config({ validate: false })
     form.handler(handler)
     form.setErrors({ foo: ["bar"] })
     form.setResult({ foo: "bar" })
@@ -367,9 +367,10 @@ describe("Form", () => {
 
     const errors = (await form.validate())!
 
-    expect(!!errors).toBe(true)
-    expect(!!errors.foo).toBe(true)
-    expect(!!errors.bar).toBe(false)
+    expect(errors === undefined).toBe(false)
+    expect(errors.foo === undefined).toBe(false)
+
+    expect(errors.bar === undefined).toBe(true)
     expect(form.get()).toEqual({ foo: "bar", bar: "5678" })
   })
 
@@ -395,14 +396,12 @@ describe("Form", () => {
     const consoleError = jest.fn()
     console.error = consoleError
 
-    const form = new Form({ foo: "bar" })
-      .config({ validateOnChange: false })
-      .schema({
-        sanitizeAsync: async () => ({}),
-        validateAsync: async () => {
-          throw new Error()
-        },
-      } as any)
+    const form = new Form({ foo: "bar" }).schema({
+      sanitizeAsync: async () => ({}),
+      validateAsync: async () => {
+        throw new Error()
+      },
+    } as any)
 
     expect(() => form.validate()).rejects.toThrow()
 
@@ -446,11 +445,7 @@ describe("Form", () => {
     console.error = jest.fn()
 
     const validator = jest.fn().mockRejectedValue(new Error("test"))
-    const form = new Form({ foo: "bar" })
-      .config({ validateOnChange: false })
-      .validator(() => ({ foo: ["error"] }))
-      .validator(() => ({ bar: ["error"] }))
-      .validator(validator)
+    const form = new Form({ foo: "bar" }).validator(validator)
 
     let receivedError: any
 
@@ -501,7 +496,7 @@ describe("Form", () => {
     const handler = jest.fn()
     const validator = jest.fn()
     const form = new Form({ foo: "bar" })
-      .config({ validateOnSubmit: false })
+      .config({ validate: false })
       .validator(validator)
       .handler(handler)
 
@@ -520,7 +515,7 @@ describe("Form", () => {
     expect(validator).toHaveBeenCalledTimes(1)
     expect(handler).toHaveBeenCalledTimes(3)
 
-    form.config({ validateOnSubmit: true })
+    form.config({ validate: true })
 
     await form.submit()
 
@@ -541,7 +536,6 @@ describe("Form", () => {
   it("validates on submit and aborts submit on validation errors", async () => {
     const handler = jest.fn()
     const form = new Form({ foo: "bar" })
-      .config({ validateOnSubmit: true })
       .validator(() => ({ foo: ["error"] }))
       .handler(handler)
 
@@ -581,7 +575,6 @@ describe("Form", () => {
   it("validates on submit and submits if there are no validation errors", async () => {
     const handler = jest.fn(() => "result")
     const form = new Form({ foo: "bar" })
-      .config({ validateOnSubmit: true })
       .validator(() => undefined)
       .handler(handler)
 
@@ -621,7 +614,7 @@ describe("Form", () => {
   it("passes options from submit to validate", async () => {
     const handler = jest.fn(() => "result")
     const form = new Form({ foo: "ba", bar: "ba" })
-      .config({ validateChangedFieldsOnly: true, validateOnSubmit: false })
+      .config({ validate: false })
       .handler(handler)
       .schema(object({ foo: string().min(3), bar: string().min(3) }))
 
@@ -629,11 +622,11 @@ describe("Form", () => {
 
     expect(form.getErrors()).toBe(undefined)
 
-    await form.submit({ validate: true })
+    await form.submit({ changed: true, validate: true })
 
     expect(form.getErrors()).toBe(undefined)
 
-    await form.submit({ validate: true, validateChangedFieldsOnly: false })
+    await form.submit({ validate: true })
 
     expect(!!form.getErrors()).toBe(true)
     expect(Array.isArray(form.getErrors()!.foo)).toBe(true)
@@ -641,25 +634,20 @@ describe("Form", () => {
   })
 
   it("validates changed fields only", async () => {
-    const form = new Form({ foo: "ba  ", bar: "ba  " })
-      .config({
-        validateChangedFieldsOnly: true,
-        sanitizeChangedFieldsOnly: true,
+    const form = new Form({ foo: "ba  ", bar: "ba  " }).schema(
+      object({
+        foo: string().min(3).toTrimmed(),
+        bar: string().min(3).toTrimmed(),
       })
-      .schema(
-        object({
-          foo: string().min(3).toTrimmed(),
-          bar: string().min(3).toTrimmed(),
-        })
-      )
+    )
 
-    const errors1 = await form.validate()
+    const errors1 = await form.validate({ changed: true })
 
     expect(errors1).toBe(undefined)
 
     form.addChangedFields("foo")
 
-    const errors2 = (await form.validate())!
+    const errors2 = (await form.validate({ changed: true }))!
 
     expect(errors2.foo.length).toBe(1)
     expect(typeof errors2.foo[0] === "string").toBe(true)
@@ -668,9 +656,9 @@ describe("Form", () => {
   })
 
   it("validates on change", async () => {
-    const form = new Form({ foo: "ba", bar: "ba" })
-      .config({ validateOnChange: true })
-      .schema(object({ foo: string().min(3), bar: string().min(3) }))
+    const form = new Form({ foo: "ba", bar: "ba" }).schema(
+      object({ foo: string().min(3), bar: string().min(3) })
+    )
 
     expect(form.getErrors()).toBe(undefined)
 
@@ -684,7 +672,7 @@ describe("Form", () => {
 
   it("validates on change can be disabled", async () => {
     const form = new Form({ foo: "ba", bar: "ba" })
-      .config({ validateOnChange: false })
+      .config({ reactive: false })
       .schema(object({ foo: string().min(3), bar: string().min(3) }))
 
     expect(form.getErrors()).toBe(undefined)
@@ -701,18 +689,15 @@ describe("Form", () => {
       object({ foo: string().min(3), bar: string().min(3) })
     )
 
-    const errors1 = await form.validate({
-      validateChangedFieldsOnly: false,
-      keepPreviousErrors: false,
-    })
+    const errors1 = await form.validate({ persist: false })
 
     expect(errors1 !== undefined).toBe(true)
     expect(errors1?.foo?.length).toBe(1)
     expect(errors1?.bar?.length).toBe(1)
 
     const errors2 = await form.validate({
-      validateChangedFieldsOnly: true,
-      keepPreviousErrors: false,
+      changed: true,
+      persist: false,
     })
 
     expect(errors2 === undefined).toBe(true)
@@ -720,8 +705,8 @@ describe("Form", () => {
     form.addChangedFields("foo")
 
     const errors3 = await form.validate({
-      validateChangedFieldsOnly: true,
-      keepPreviousErrors: false,
+      changed: true,
+      persist: false,
     })
 
     expect(errors3 !== undefined).toBe(true)
@@ -729,24 +714,20 @@ describe("Form", () => {
     expect(errors3?.bar?.length).toBe(undefined)
 
     const errors4 = await form.validate({
-      validateChangedFieldsOnly: false,
-      keepPreviousErrors: false,
+      persist: false,
     })
 
     expect(errors4 !== undefined).toBe(true)
     expect(errors4?.foo?.length).toBe(1)
     expect(errors4?.bar?.length).toBe(1)
 
-    const errors5 = await form.validate({
-      validateChangedFieldsOnly: false,
-      keepPreviousErrors: true,
-    })
+    const errors5 = await form.validate()
 
     expect(errors5 !== undefined).toBe(true)
     expect(errors5?.foo?.length).toBe(1)
     expect(errors5?.bar?.length).toBe(1)
 
-    const errors6 = await form.validate({ validateChangedFieldsOnly: true })
+    const errors6 = await form.validate({ changed: true })
 
     expect(errors6 !== undefined).toBe(true)
     expect(errors6?.foo?.length).toBe(1)
@@ -754,7 +735,7 @@ describe("Form", () => {
 
     form.setAt("bar", "bar")
 
-    const errors7 = await form.validate({ validateChangedFieldsOnly: true })
+    const errors7 = await form.validate({ changed: true })
 
     expect(errors7 !== undefined).toBe(true)
     expect(errors7?.foo?.length).toBe(1)
@@ -766,10 +747,10 @@ describe("Form", () => {
       object({ foo: string().min(3), bar: string().min(3) })
     )
 
-    const errors1 = await form.validate({ persistErrors: false })
+    const errors1 = await form.validate({ persist: false })
 
     expect(errors1 !== undefined).toBe(true)
-    expect(form.getErrors() !== undefined).toBe(false)
+    expect(form.getErrors() === undefined).toBe(true)
 
     const errors2 = await form.validate()
 
@@ -1281,5 +1262,266 @@ describe("Form", () => {
     form.setSubmitted(true)
 
     expect(form.isSubmitted()).toBe(true)
+  })
+
+  it("configured 'reactive' to true by default", async () => {
+    const form = new Form({ foo: "a", bar: "b" }).schema(
+      object({ foo: string().min(3), bar: string().min(3) })
+    )
+
+    expect(form.getErrors() === undefined).toBe(true)
+
+    form.setAt("foo", "aa")
+
+    await createTimeout(0)
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+
+    await form.validate()
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+
+    form.setAt("foo", "aaa")
+
+    await createTimeout(0)
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+  })
+
+  it("accepts 'reactive' false", async () => {
+    const form = new Form({ foo: "a", bar: "b" })
+      .config({ reactive: false })
+      .schema(object({ foo: string().min(3), bar: string().min(3) }))
+
+    expect(form.getErrors() === undefined).toBe(true)
+
+    form.setAt("foo", "aa")
+
+    await createTimeout(0)
+
+    expect(form.getErrors() === undefined).toBe(true)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+
+    await form.validate()
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+
+    form.setAt("foo", "aaa")
+
+    await createTimeout(0)
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+
+    await form.validate()
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+  })
+
+  it("configures 'validate' to true by default", async () => {
+    const form = new Form({ foo: "a", bar: "b" }).schema(
+      object({ foo: string().min(3), bar: string().min(3) })
+    )
+
+    await form.submit()
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+
+    await form.submit({ validate: false })
+
+    expect(form.getErrors() === undefined).toBe(true)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+  })
+
+  it("accepts 'validate' false", async () => {
+    const form = new Form({ foo: "a", bar: "b" })
+      .config({ validate: false })
+      .schema(object({ foo: string().min(3), bar: string().min(3) }))
+
+    await form.submit()
+
+    expect(form.getErrors() === undefined).toBe(true)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+
+    await form.submit({ validate: true })
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+  })
+
+  it("configures 'sanitize' to true by default", async () => {
+    const form = new Form({ foo: "a  ", bar: "b  " }).schema(
+      object({
+        foo: string().min(3).toTrimmed(),
+        bar: string().min(3).toTrimmed(),
+      })
+    )
+
+    await form.submit()
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+    expect(form.get()).toEqual({ foo: "a", bar: "b" })
+
+    form.set({ foo: "a  ", bar: "b  " })
+
+    await form.submit({ sanitize: false })
+
+    expect(form.getErrors() === undefined).toBe(true)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+    expect(form.get()).toEqual({ foo: "a  ", bar: "b  " })
+
+    await form.validate()
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+    expect(form.get()).toEqual({ foo: "a", bar: "b" })
+
+    form.set({ foo: "a  ", bar: "b  " })
+
+    await form.validate({ sanitize: false })
+
+    expect(form.getErrors() === undefined).toBe(true)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+    expect(form.get()).toEqual({ foo: "a  ", bar: "b  " })
+  })
+
+  it("accepts 'sanitize' false", async () => {
+    const form = new Form({ foo: "a  ", bar: "b  " })
+      .config({ sanitize: false })
+      .schema(
+        object({
+          foo: string().min(3).toTrimmed(),
+          bar: string().min(3).toTrimmed(),
+        })
+      )
+
+    await form.submit()
+
+    expect(form.getErrors() === undefined).toBe(true)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+    expect(form.get()).toEqual({ foo: "a  ", bar: "b  " })
+
+    await form.submit({ sanitize: true })
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+    expect(form.get()).toEqual({ foo: "a", bar: "b" })
+
+    form.set({ foo: "a  ", bar: "b  " })
+
+    await form.validate({ sanitize: true })
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+    expect(form.get()).toEqual({ foo: "a", bar: "b" })
+  })
+
+  it("sets 'changed' to false by default", async () => {
+    const form = new Form({ foo: "a  ", bar: "b  " }).schema(
+      object({
+        foo: string().min(3).toTrimmed(),
+        bar: string().min(3).toTrimmed(),
+      })
+    )
+
+    await form.submit()
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+    expect(form.get()).toEqual({ foo: "a", bar: "b" })
+
+    form.set({ foo: "a  ", bar: "b  " })
+
+    await form.validate()
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(false)
+    expect(form.get()).toEqual({ foo: "a", bar: "b" })
+
+    form.set({ foo: "a  ", bar: "b  " })
+
+    await form.submit({ changed: true })
+
+    expect(form.getErrors() === undefined).toBe(true)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+    expect(form.get()).toEqual({ foo: "a  ", bar: "b  " })
+
+    await form.validate({ changed: true })
+
+    expect(form.getErrors() === undefined).toBe(true)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+    expect(form.get()).toEqual({ foo: "a  ", bar: "b  " })
+
+    form.changedFields.set(["foo"])
+
+    await form.submit({ changed: true })
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+    expect(form.get()).toEqual({ foo: "a", bar: "b  " })
+
+    form.clearErrors()
+    form.set({ foo: "a  ", bar: "b  " })
+
+    await form.validate({ changed: true })
+
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+    expect(form.getErrors()?.bar === undefined).toBe(true)
+    expect(form.get()).toEqual({ foo: "a", bar: "b  " })
+  })
+
+  it("sets 'persist' to true by default", async () => {
+    const form = new Form({ foo: "a" }).schema(
+      object({
+        foo: string().min(3),
+      })
+    )
+
+    const errors1 = await form.validate()
+
+    expect(errors1 === undefined).toBe(false)
+    expect(errors1?.foo === undefined).toBe(false)
+    expect(form.getErrors() === undefined).toBe(false)
+    expect(form.getErrors()?.foo === undefined).toBe(false)
+
+    form.clearErrors()
+
+    const errors2 = await form.validate({ persist: false })
+
+    expect(errors2 === undefined).toBe(false)
+    expect(errors2?.foo === undefined).toBe(false)
+    expect(form.getErrors() === undefined).toBe(true)
+    expect(form.getErrors()?.foo === undefined).toBe(true)
   })
 })

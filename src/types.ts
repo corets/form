@@ -12,25 +12,27 @@ export type FormValidator<TValue extends object, TResult> = (
   form: ObservableForm<TValue, TResult>
 ) => Promise<ValidationResult | undefined> | ValidationResult | undefined
 
-export type FormCallback<TValue extends object, TResult> = (
+export type FormListener<TValue extends object, TResult> = (
   form: ObservableForm<TValue, TResult>
 ) => void
 
-export type FormCallbackUnsubscribe = () => void
+export type FormListenerUnsubscribe = () => void
 
 export type FormHandler<TValue extends object, TResult> = (
   form: ObservableForm<TValue, TResult>
 ) => Promise<TResult | undefined> | TResult | undefined
 
 export type FormValidateOptions = {
-  validateChangedFieldsOnly?: boolean
-  sanitizeChangedFieldsOnly?: boolean
-  keepPreviousErrors?: boolean
-  persistErrors?: boolean
+  changed?: boolean
   sanitize?: boolean
+  persist?: boolean
 }
 
-export type FormSubmitOptions = FormValidateOptions & { validate?: boolean }
+export type FormSubmitOptions = {
+  validate?: boolean
+  sanitize?: boolean
+  changed?: boolean
+}
 
 export type FormDepsOptions = {
   config?: boolean
@@ -47,12 +49,10 @@ export type FormConfig<TValue extends object, TResult> = {
   validator: FormValidator<TValue, TResult> | undefined
   schema: ObjectSchema<TValue> | undefined
   handler: FormHandler<TValue, TResult> | undefined
-  validateOnSubmit: boolean
-  validateChangedFieldsOnly: boolean
-  sanitizeChangedFieldsOnly: boolean
-  validateOnChange: boolean
-  sanitize: boolean
   debounce: number
+  reactive: boolean
+  validate: boolean
+  sanitize: boolean
 }
 
 export type FormListenOptions = {
@@ -113,9 +113,9 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   handler(handler: FormHandler<TValue, TResult>): this
 
   listen(
-    callback: FormCallback<TValue, TResult>,
+    callback: FormListener<TValue, TResult>,
     options?: FormListenOptions
-  ): FormCallbackUnsubscribe
+  ): FormListenerUnsubscribe
 
   deps(field: string | string[], options?: FormDepsOptions): any[]
 }
