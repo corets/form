@@ -548,13 +548,8 @@ export class Form<TValue extends object = any, TResult = any>
       try {
         const reactive = this.configuration.get().reactive
         const validate = this.configuration.get().validate
-        const sanitize = this.configuration.get().sanitize
 
         if (reactive) {
-          if (sanitize) {
-            await this.runSchemaSanitizer(true)
-          }
-
           if (validate) {
             await this.validate({
               sanitize: false,
