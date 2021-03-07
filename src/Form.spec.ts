@@ -786,7 +786,7 @@ describe("Form", () => {
 
     await createTimeout(20)
 
-    expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledTimes(2)
     expect(listener).toHaveBeenCalledWith(form)
 
     unsubscribe()
@@ -795,7 +795,7 @@ describe("Form", () => {
 
     await createTimeout(20)
 
-    expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledTimes(2)
   })
 
   it("listens with immediate", async () => {
@@ -806,14 +806,14 @@ describe("Form", () => {
 
     await createTimeout(20)
 
-    expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledTimes(2)
     expect(listener).toHaveBeenCalledWith(form)
 
     form.setAt("foo.bar", "yolo")
 
     await createTimeout(20)
 
-    expect(listener).toHaveBeenCalledTimes(2)
+    expect(listener).toHaveBeenCalledTimes(4)
     expect(listener).toHaveBeenCalledWith(form)
 
     unsubscribe()
@@ -822,7 +822,7 @@ describe("Form", () => {
 
     await createTimeout(20)
 
-    expect(listener).toHaveBeenCalledTimes(2)
+    expect(listener).toHaveBeenCalledTimes(4)
   })
 
   it("listens without debounce", () => {

@@ -295,7 +295,7 @@ export class Form<TValue extends object = any, TResult = any>
 
     const unsubscribeCallbacks = [
       this.configuration.listen(listener, { immediate }),
-      this.value.listen(listener, { immediate }),
+      this.value.listen(callback, { immediate }),
       this.result.listen(listener, { immediate }),
       this.errors.listen(listener, { immediate }),
       this.dirtyFields.listen(listener, { immediate }),
