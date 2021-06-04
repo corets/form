@@ -849,6 +849,12 @@ describe("Form", () => {
   it("deps", () => {
     const form = new Form({ foo: "foo", bar: "bar" })
 
+    const getSerializedConfig = () => {
+      const { validate, debounce, reactive, sanitize } = form.configuration.get()
+
+      return JSON.stringify({ validate, debounce, reactive, sanitize })
+    }
+
     expect(form.deps(["foo", "bar"])).toEqual([
       `["foo","bar"]`,
       `[null,null]`,
@@ -857,7 +863,7 @@ describe("Form", () => {
       undefined,
       `false`,
       `false`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     form.setAt("foo", "fooz")
@@ -870,7 +876,7 @@ describe("Form", () => {
       undefined,
       `false`,
       `false`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     form.setErrorsAt("foo", ["error"])
@@ -883,7 +889,7 @@ describe("Form", () => {
       undefined,
       `false`,
       `false`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     form.submitting.set(true)
@@ -896,7 +902,7 @@ describe("Form", () => {
       undefined,
       `true`,
       `false`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     form.submitted.set(true)
@@ -909,7 +915,7 @@ describe("Form", () => {
       undefined,
       `true`,
       `true`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     form.setResult({ status: "ok" })
@@ -922,7 +928,7 @@ describe("Form", () => {
       `{"status":"ok"}`,
       `true`,
       `true`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     form.setAt("bar", "barz")
@@ -935,7 +941,7 @@ describe("Form", () => {
       `{"status":"ok"}`,
       `true`,
       `true`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     form.setErrorsAt("bar", ["yolo"])
@@ -948,7 +954,7 @@ describe("Form", () => {
       `{"status":"ok"}`,
       `true`,
       `true`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     expect(
@@ -963,7 +969,7 @@ describe("Form", () => {
       undefined,
       `true`,
       `true`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     expect(
@@ -979,7 +985,7 @@ describe("Form", () => {
       undefined,
       undefined,
       `true`,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     expect(
@@ -996,7 +1002,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     expect(
@@ -1014,7 +1020,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     expect(
@@ -1033,7 +1039,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     expect(
@@ -1053,7 +1059,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     expect(
@@ -1074,7 +1080,7 @@ describe("Form", () => {
       undefined,
       undefined,
       undefined,
-      form.configuration.get(),
+      getSerializedConfig(),
     ])
 
     expect(

@@ -295,7 +295,7 @@ export class Form<TValue extends object = any, TResult = any>
 
     const unsubscribeCallbacks = [
       this.configuration.listen(listener, { immediate }),
-      this.value.listen(callback, { immediate }),
+      this.value.listen(() => callback(this), { immediate }),
       this.result.listen(listener, { immediate }),
       this.errors.listen(listener, { immediate }),
       this.dirtyFields.listen(listener, { immediate }),
@@ -438,8 +438,6 @@ export class Form<TValue extends object = any, TResult = any>
 
   deps(field: string | string[], options: FormDepsOptions = {}): any[] {
     const fields = Array.isArray(field) ? field : [field]
-    const config =
-      options.config === false ? undefined : this.configuration.get()
     const values =
       options.values === false ? [] : fields.map((field) => this.getAt(field))
     const errors =
@@ -460,6 +458,9 @@ export class Form<TValue extends object = any, TResult = any>
     const submitted =
       options.submitted === false ? undefined : this.isSubmitted()
 
+    const { validate, debounce, reactive, sanitize } = this.configuration.get()
+    const config = options.config === false ? undefined : { validate, debounce, reactive, sanitize }
+
     const deps = [
       JSON.stringify(values),
       JSON.stringify(errors),
@@ -468,7 +469,7 @@ export class Form<TValue extends object = any, TResult = any>
       JSON.stringify(result),
       JSON.stringify(submitting),
       JSON.stringify(submitted),
-      config,
+      JSON.stringify(config),
     ]
 
     return deps
