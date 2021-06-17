@@ -30,6 +30,7 @@
     "devrelease": "np prerelease --no-release-draft --tag dev"
   },
   "dependencies": {
+    "@corets/accessor": "^0.0.1-2",
     "@corets/schema": "^0.0.1-5",
     "@corets/store": "^0.0.1-6",
     "@corets/value": "^0.0.1-11",

@@ -1,14 +1,15 @@
 import {
-  FormDepsOptions,
-  FormListener,
   FormConfig,
+  FormDepsOptions,
   FormHandler,
+  FormListener,
+  FormListenerUnsubscribe,
+  FormListenOptions,
   FormSubmitOptions,
   FormValidateOptions,
   FormValidator,
   ObservableForm,
-  FormListenerUnsubscribe,
-  FormListenOptions,
+  ObservableFormField,
 } from "./types"
 import { debounce, difference, get, isEqual, merge, set, uniq } from "lodash-es"
 import { ObjectSchema, ValidationResult } from "@corets/schema"
@@ -16,6 +17,8 @@ import { isEmptyErrorsObject } from "./isEmptyErrorsObject"
 import { createStore, ObservableStore } from "@corets/store"
 import { createValue, ObservableValue } from "@corets/value"
 import { isEmptyErrorsArray } from "./isEmptyErrorsArray"
+import { FormField } from "./FormField"
+import { createAccessor, ObjectAccessor } from "@corets/accessor"
 
 export class Form<TValue extends object = any, TResult = any>
   implements ObservableForm<TValue, TResult> {
@@ -72,10 +75,10 @@ export class Form<TValue extends object = any, TResult = any>
     const oldValue = get(this.initialValue, path)
 
     if (!isEqual(oldValue, newValue)) {
-      this.addChangedFields(path)
+      this.setChangedAt(path)
     }
 
-    this.addDirtyFields(path)
+    this.setDirtyAt(path)
   }
 
   put(newValues: Partial<TValue>): void {
@@ -90,8 +93,8 @@ export class Form<TValue extends object = any, TResult = any>
     this.value.set(this.initialValue)
     this.submitting.set(false)
     this.submitted.set(false)
-    this.clearDirtyFields()
-    this.clearChangedFields()
+    this.clearDirty()
+    this.clearChanged()
     this.clearErrors()
     this.clearResult()
   }
@@ -173,83 +176,89 @@ export class Form<TValue extends object = any, TResult = any>
   }
 
   isDirty(): boolean {
-    return this.getDirtyFields().length > 0
+    return this.getDirty().length > 0
   }
 
-  isDirtyField(field: string): boolean {
-    return this.getDirtyFields().includes(field)
+  isDirtyAt(field: string): boolean {
+    return this.getDirty().includes(field)
   }
 
-  getDirtyFields(): string[] {
+  getDirty(): string[] {
     return this.dirtyFields.get()
   }
 
-  setDirtyFields(newFields: string | string[]): void {
+  setDirtyAt(newFields: string | string[]): void {
     if (!Array.isArray(newFields)) {
       newFields = [newFields]
     }
 
-    this.dirtyFields.set(uniq(newFields))
+    this.dirtyFields.set(uniq([...this.getDirty(), ...newFields]))
   }
 
-  addDirtyFields(newFields: string | string[]): void {
+  addDirtyAt(newFields: string | string[]): void {
     if (!Array.isArray(newFields)) {
       newFields = [newFields]
     }
 
-    this.setDirtyFields([...this.getDirtyFields(), ...newFields])
+    this.setDirtyAt([...this.getDirty(), ...newFields])
   }
 
-  clearDirtyFields(): void {
+  clearDirty(): void {
     this.dirtyFields.set([])
   }
 
-  clearDirtyField(fields: string | string[]): void {
+  clearDirtyAt(fields: string | string[]): void {
     if (!Array.isArray(fields)) {
       fields = [fields]
     }
 
-    this.setDirtyFields(difference(this.getDirtyFields(), fields))
+    const dirtyFields = difference(this.getDirty(), fields)
+
+    this.clearDirty()
+    this.setDirtyAt(dirtyFields)
   }
 
   isChanged(): boolean {
-    return this.getChangedFields().length > 0
+    return this.getChanged().length > 0
   }
 
-  isChangedField(field: string): boolean {
-    return this.getChangedFields().includes(field)
+  isChangedAt(field: string): boolean {
+    return this.getChanged().includes(field)
   }
 
-  getChangedFields(): string[] {
+  getChanged(): string[] {
     return this.changedFields.get()
   }
 
-  setChangedFields(newFields: string | string[]): void {
+  setChangedAt(newFields: string | string[]): void {
     if (!Array.isArray(newFields)) {
       newFields = [newFields]
     }
 
-    this.changedFields.set(uniq(newFields))
+    this.changedFields.set(uniq([...this.getChanged(), ...newFields]))
   }
 
-  addChangedFields(newFields: string | string[]): void {
+  addChangedAt(newFields: string | string[]): void {
     if (!Array.isArray(newFields)) {
       newFields = [newFields]
     }
 
-    this.setChangedFields([...this.getChangedFields(), ...newFields])
+    this.setChangedAt([...this.getChanged(), ...newFields])
   }
 
-  clearChangedFields(): void {
+  clearChanged(): void {
     this.changedFields.set([])
   }
 
-  clearChangedField(fields: string | string[]): void {
+  clearChangedAt(fields: string | string[]): void {
     if (!Array.isArray(fields)) {
       fields = [fields]
     }
 
-    this.setChangedFields(difference(this.getChangedFields(), fields))
+    const changedFields = difference(this.getChanged(), fields)
+
+    this.clearChanged()
+    this.setChangedAt(changedFields)
   }
 
   getResult(): TResult | undefined {
@@ -413,7 +422,7 @@ export class Form<TValue extends object = any, TResult = any>
     if (changed) {
       const oldErrorKeys = Object.keys(this.getErrors() || {})
       const newErrorKeys = Object.keys(newErrors)
-      const changedFields = this.getChangedFields()
+      const changedFields = this.getChanged()
 
       newErrorKeys.map((key) => {
         const fieldHasChanged = changedFields.includes(key)
@@ -448,18 +457,21 @@ export class Form<TValue extends object = any, TResult = any>
     const dirtyFields =
       options.dirtyFields === false
         ? []
-        : fields.map((field) => this.isDirtyField(field))
+        : fields.map((field) => this.isDirtyAt(field))
     const changedFields =
       options.changedFields === false
         ? []
-        : fields.map((field) => this.isChangedField(field))
+        : fields.map((field) => this.isChangedAt(field))
     const submitting =
       options.submitting === false ? undefined : this.isSubmitting()
     const submitted =
       options.submitted === false ? undefined : this.isSubmitted()
 
     const { validate, debounce, reactive, sanitize } = this.configuration.get()
-    const config = options.config === false ? undefined : { validate, debounce, reactive, sanitize }
+    const config =
+      options.config === false
+        ? undefined
+        : { validate, debounce, reactive, sanitize }
 
     const deps = [
       JSON.stringify(values),
@@ -473,6 +485,13 @@ export class Form<TValue extends object = any, TResult = any>
     ]
 
     return deps
+  }
+
+  fields(): ObjectAccessor<TValue, ObservableFormField<ObservableForm>> {
+    return createAccessor(
+      this.get(),
+      (source, key) => new FormField(this as ObservableForm, key!.toString())
+    )
   }
 
   protected async runValidator(): Promise<ValidationResult | undefined> {

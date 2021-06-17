@@ -1,4 +1,5 @@
 import { ObjectSchema, ValidationResult } from "@corets/schema"
+import { ObjectAccessor } from "@corets/accessor"
 
 export type CreateForm = <TValue extends object = any, TResult = any>(
   initialValue?: TValue
@@ -79,21 +80,28 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   clearErrors(): void
   clearErrorsAt(path: string | string[]): void
 
+  isDirtyAt(field: string): boolean
+  clearDirtyAt(fields: string | string[]): void
+
   isDirty(): boolean
-  isDirtyField(field: string): boolean
-  getDirtyFields(): string[]
-  setDirtyFields(newFields: string | string[]): void
-  addDirtyFields(newFields: string | string[]): void
-  clearDirtyFields(): void
-  clearDirtyField(fields: string | string[]): void
+  getDirty(): string[]
+  setDirtyAt(newFields: string | string[]): void
+  addDirtyAt(newFields: string | string[]): void
+  clearDirty(): void
+
+  isDirty(): boolean
+  isDirtyAt(field: string): boolean
+  getDirty(): string[]
+  setDirtyAt(newFields: string | string[]): void
+  clearDirty(): void
+  clearDirtyAt(fields: string | string[]): void
 
   isChanged(): boolean
-  isChangedField(field: string): boolean
-  getChangedFields(): string[]
-  setChangedFields(newFields: string | string[]): void
-  addChangedFields(newFields: string | string[]): void
-  clearChangedFields(): void
-  clearChangedField(fields: string | string[]): void
+  isChangedAt(field: string): boolean
+  getChanged(): string[]
+  setChangedAt(newFields: string | string[]): void
+  clearChanged(): void
+  clearChangedAt(fields: string | string[]): void
 
   getResult(): TResult | undefined
   setResult(newValue: TResult | undefined): void
@@ -118,4 +126,33 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   ): FormListenerUnsubscribe
 
   deps(field: string | string[], options?: FormDepsOptions): any[]
+
+  fields(): ObjectAccessor<
+    TValue,
+    ObservableFormField<ObservableForm<TValue, TResult>>
+  >
+}
+
+export interface ObservableFormField<
+  TForm extends ObservableForm = ObservableForm
+> {
+  getValue(): any
+  setValue(value: any): void
+  getKey(): string
+
+  getErrors(): string[] | undefined
+  setErrors(newErrors: string | string[]): void
+  addErrors(newErrors: string | string[]): void
+  hasErrors(): boolean
+  clearErrors(): void
+
+  isDirty(): boolean
+  setDirty(): void
+  clearDirty(): void
+
+  isChanged(): boolean
+  setChanged(): void
+  clearChanged(): void
+
+  getForm(): TForm
 }

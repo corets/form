@@ -2,6 +2,7 @@ import { Form } from "./Form"
 import { object, string } from "@corets/schema"
 import { createTimeout } from "@corets/promise-helpers"
 import { createForm } from "./createForm"
+import { FormField } from "./FormField"
 
 describe("Form", () => {
   it("creates with initial values", () => {
@@ -48,8 +49,8 @@ describe("Form", () => {
     form.set({ yolo: "swag" })
     form.submitting.set(true)
     form.submitted.set(true)
-    form.setDirtyFields(["foo"])
-    form.setChangedFields(["foo"])
+    form.setDirtyAt(["foo"])
+    form.setChangedAt(["foo"])
     form.setErrors({ foo: ["bar"] })
     form.setResult({ foo: ["bar"] })
 
@@ -58,8 +59,8 @@ describe("Form", () => {
     expect(form.get()).toEqual({ foo: "bar" })
     expect(form.isSubmitting()).toEqual(false)
     expect(form.isSubmitted()).toEqual(false)
-    expect(form.getDirtyFields()).toEqual([])
-    expect(form.getChangedFields()).toEqual([])
+    expect(form.getDirty()).toEqual([])
+    expect(form.getChanged()).toEqual([])
     expect(form.getErrors()).toEqual(undefined)
     expect(form.getResult()).toEqual(undefined)
   })
@@ -645,7 +646,7 @@ describe("Form", () => {
 
     expect(errors1).toBe(undefined)
 
-    form.addChangedFields("foo")
+    form.setChangedAt("foo")
 
     const errors2 = (await form.validate({ changed: true }))!
 
@@ -702,7 +703,7 @@ describe("Form", () => {
 
     expect(errors2 === undefined).toBe(true)
 
-    form.addChangedFields("foo")
+    form.setChangedAt("foo")
 
     const errors3 = await form.validate({
       changed: true,
@@ -763,13 +764,13 @@ describe("Form", () => {
 
     form.setAt("foo", "bar")
 
-    expect(form.getDirtyFields()).toEqual(["foo"])
-    expect(form.getChangedFields()).toEqual([])
+    expect(form.getDirty()).toEqual(["foo"])
+    expect(form.getChanged()).toEqual([])
 
     form.setAt("foo", "baz")
 
-    expect(form.getDirtyFields()).toEqual(["foo"])
-    expect(form.getChangedFields()).toEqual(["foo"])
+    expect(form.getDirty()).toEqual(["foo"])
+    expect(form.getChanged()).toEqual(["foo"])
   })
 
   it("listens", async () => {
@@ -850,7 +851,12 @@ describe("Form", () => {
     const form = new Form({ foo: "foo", bar: "bar" })
 
     const getSerializedConfig = () => {
-      const { validate, debounce, reactive, sanitize } = form.configuration.get()
+      const {
+        validate,
+        debounce,
+        reactive,
+        sanitize,
+      } = form.configuration.get()
 
       return JSON.stringify({ validate, debounce, reactive, sanitize })
     }
@@ -1131,106 +1137,106 @@ describe("Form", () => {
   it("dirty fields and changed fields are empty initially", () => {
     const form = new Form()
 
-    expect(form.getDirtyFields()).toEqual([])
-    expect(form.getChangedFields()).toEqual([])
+    expect(form.getDirty()).toEqual([])
+    expect(form.getChanged()).toEqual([])
   })
 
   it("returns and sets dirty and changed fields", () => {
     const form = new Form()
 
-    expect(form.getDirtyFields()).toEqual([])
-    expect(form.getChangedFields()).toEqual([])
+    expect(form.getDirty()).toEqual([])
+    expect(form.getChanged()).toEqual([])
 
-    form.setDirtyFields(["foo"])
-    form.setChangedFields(["bar"])
+    form.setDirtyAt(["foo"])
+    form.setChangedAt(["bar"])
 
-    expect(form.getDirtyFields()).toEqual(["foo"])
-    expect(form.getChangedFields()).toEqual(["bar"])
+    expect(form.getDirty()).toEqual(["foo"])
+    expect(form.getChanged()).toEqual(["bar"])
 
-    form.setDirtyFields("yolo")
-    form.setChangedFields("swag")
+    form.setDirtyAt("yolo")
+    form.setChangedAt("swag")
 
-    expect(form.getDirtyFields()).toEqual(["yolo"])
-    expect(form.getChangedFields()).toEqual(["swag"])
+    expect(form.getDirty()).toEqual(["foo", "yolo"])
+    expect(form.getChanged()).toEqual(["bar", "swag"])
   })
 
   it("tells if a dirty or changed field is set", () => {
     const form = new Form()
-    form.setDirtyFields(["foo", "bar"])
-    form.setChangedFields(["yolo", "swag"])
+    form.setDirtyAt(["foo", "bar"])
+    form.setChangedAt(["yolo", "swag"])
 
-    expect(form.isDirtyField("foo")).toBe(true)
-    expect(form.isChangedField("yolo")).toBe(true)
-    expect(form.isDirtyField("baz")).toBe(false)
+    expect(form.isDirtyAt("foo")).toBe(true)
+    expect(form.isChangedAt("yolo")).toBe(true)
+    expect(form.isDirtyAt("baz")).toBe(false)
   })
 
   it("adds dirty and changed fields", () => {
     const form = new Form()
-    form.addDirtyFields("foo")
-    form.addChangedFields("yolo")
+    form.setDirtyAt("foo")
+    form.setChangedAt("yolo")
 
-    expect(form.getDirtyFields()).toEqual(["foo"])
-    expect(form.getChangedFields()).toEqual(["yolo"])
+    expect(form.getDirty()).toEqual(["foo"])
+    expect(form.getChanged()).toEqual(["yolo"])
 
-    form.addDirtyFields(["bar"])
-    form.addChangedFields(["swag"])
+    form.setDirtyAt(["bar"])
+    form.setChangedAt(["swag"])
 
-    expect(form.getDirtyFields()).toEqual(["foo", "bar"])
-    expect(form.getChangedFields()).toEqual(["yolo", "swag"])
+    expect(form.getDirty()).toEqual(["foo", "bar"])
+    expect(form.getChanged()).toEqual(["yolo", "swag"])
   })
 
   it("does not allow duplicates inside dirty and changed fields", () => {
     const form = new Form()
-    form.setDirtyFields(["foo", "foo"])
-    form.setChangedFields(["yolo", "yolo"])
+    form.setDirtyAt(["foo", "foo"])
+    form.setChangedAt(["yolo", "yolo"])
 
-    expect(form.getDirtyFields()).toEqual(["foo"])
-    expect(form.getChangedFields()).toEqual(["yolo"])
+    expect(form.getDirty()).toEqual(["foo"])
+    expect(form.getChanged()).toEqual(["yolo"])
 
-    form.addDirtyFields(["foo"])
-    form.addChangedFields(["yolo"])
+    form.setDirtyAt(["foo"])
+    form.setChangedAt(["yolo"])
 
-    expect(form.getDirtyFields()).toEqual(["foo"])
-    expect(form.getChangedFields()).toEqual(["yolo"])
+    expect(form.getDirty()).toEqual(["foo"])
+    expect(form.getChanged()).toEqual(["yolo"])
   })
 
   it("clears dirty and changed fields at specific paths", () => {
     const form = new Form()
-    form.setDirtyFields(["foo", "bar"])
-    form.setChangedFields(["yolo", "swag"])
+    form.setDirtyAt(["foo", "bar"])
+    form.setChangedAt(["yolo", "swag"])
 
-    expect(form.getDirtyFields()).toEqual(["foo", "bar"])
-    expect(form.getChangedFields()).toEqual(["yolo", "swag"])
+    expect(form.getDirty()).toEqual(["foo", "bar"])
+    expect(form.getChanged()).toEqual(["yolo", "swag"])
 
-    form.clearDirtyField(["bar"])
-    form.clearChangedField(["swag"])
+    form.clearDirtyAt(["bar"])
+    form.clearChangedAt(["swag"])
 
-    expect(form.getDirtyFields()).toEqual(["foo"])
-    expect(form.getChangedFields()).toEqual(["yolo"])
+    expect(form.getDirty()).toEqual(["foo"])
+    expect(form.getChanged()).toEqual(["yolo"])
 
-    form.clearDirtyField("foo")
-    form.clearChangedField("yolo")
+    form.clearDirtyAt("foo")
+    form.clearChangedAt("yolo")
 
-    expect(form.getDirtyFields()).toEqual([])
-    expect(form.getChangedFields()).toEqual([])
+    expect(form.getDirty()).toEqual([])
+    expect(form.getChanged()).toEqual([])
   })
 
   it("clears dirty and changed fields fields", () => {
     const form = new Form()
 
-    form.setDirtyFields(["foo"])
-    form.setChangedFields(["bar"])
+    form.setDirtyAt(["foo"])
+    form.setChangedAt(["bar"])
 
-    expect(form.getDirtyFields()).toEqual(["foo"])
-    expect(form.getChangedFields()).toEqual(["bar"])
+    expect(form.getDirty()).toEqual(["foo"])
+    expect(form.getChanged()).toEqual(["bar"])
 
-    form.clearDirtyFields()
+    form.clearDirty()
 
-    expect(form.getDirtyFields()).toEqual([])
+    expect(form.getDirty()).toEqual([])
 
-    form.clearChangedFields()
+    form.clearChanged()
 
-    expect(form.getChangedFields()).toEqual([])
+    expect(form.getChanged()).toEqual([])
   })
 
   it("tells if form is changed or dirty", () => {
@@ -1529,5 +1535,15 @@ describe("Form", () => {
     expect(errors2?.foo === undefined).toBe(false)
     expect(form.getErrors() === undefined).toBe(true)
     expect(form.getErrors()?.foo === undefined).toBe(true)
+  })
+
+  it("returns an object accessor for fields", () => {
+    const form = new Form({ foo: "bar", bar: { baz: "yolo" } })
+    const fields = form.fields()
+
+    expect(fields.foo.get() instanceof FormField).toBe(true)
+    expect(fields.foo.get().getValue()).toBe("bar")
+    expect(fields.bar.baz.get() instanceof FormField).toBe(true)
+    expect(fields.bar.baz.get().getValue()).toBe("yolo")
   })
 })
