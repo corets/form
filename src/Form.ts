@@ -72,13 +72,15 @@ export class Form<TValue extends object = any, TResult = any>
 
     this.set(newValues)
 
+    this.setDirtyAt(path)
+
     const oldValue = get(this.initialValue, path)
 
     if (!isEqual(oldValue, newValue)) {
       this.setChangedAt(path)
+    } else {
+      this.clearChangedAt(path)
     }
-
-    this.setDirtyAt(path)
   }
 
   put(newValues: Partial<TValue>): void {

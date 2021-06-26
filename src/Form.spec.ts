@@ -703,7 +703,7 @@ describe("Form", () => {
 
     expect(errors2 === undefined).toBe(true)
 
-    form.setChangedAt("foo")
+    form.setAt("foo", "aa")
 
     const errors3 = await form.validate({
       changed: true,
@@ -771,6 +771,11 @@ describe("Form", () => {
 
     expect(form.getDirty()).toEqual(["foo"])
     expect(form.getChanged()).toEqual(["foo"])
+
+    form.setAt("foo", "bar")
+
+    expect(form.getDirty()).toEqual(["foo"])
+    expect(form.getChanged()).toEqual([])
   })
 
   it("listens", async () => {

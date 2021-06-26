@@ -120,6 +120,12 @@ describe("FormField", () => {
 
     field.setValue("bar")
 
+    expect(field.isChanged()).toBe(false)
+    expect(form.isChanged()).toBe(false)
+    expect(form.getChanged()).toEqual([])
+
+    field.setValue("baz")
+
     expect(field.isChanged()).toBe(true)
     expect(form.isChanged()).toBe(true)
     expect(form.getChanged()).toEqual(["foo"])
