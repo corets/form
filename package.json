@@ -1,7 +1,7 @@
 {
   "name": "@corets/form",
   "description": "Easy to use form library that works everywhere, including React",
-  "version": "0.0.1-19",
+  "version": "0.0.1-20",
   "author": "Maxim Kott",
   "license": "MIT",
   "main": "dist/index.js",
