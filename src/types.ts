@@ -80,19 +80,11 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   clearErrors(): void
   clearErrorsAt(path: string | string[]): void
 
-  isDirtyAt(field: string): boolean
-  clearDirtyAt(fields: string | string[]): void
-
   isDirty(): boolean
+  isDirtyAt(field: string): boolean
   getDirty(): string[]
   setDirtyAt(newFields: string | string[]): void
   addDirtyAt(newFields: string | string[]): void
-  clearDirty(): void
-
-  isDirty(): boolean
-  isDirtyAt(field: string): boolean
-  getDirty(): string[]
-  setDirtyAt(newFields: string | string[]): void
   clearDirty(): void
   clearDirtyAt(fields: string | string[]): void
 
@@ -100,6 +92,7 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   isChangedAt(field: string): boolean
   getChanged(): string[]
   setChangedAt(newFields: string | string[]): void
+  addChangedAt(newFields: string | string[]): void
   clearChanged(): void
   clearChangedAt(fields: string | string[]): void
 
