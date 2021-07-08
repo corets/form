@@ -11,7 +11,8 @@ import {
   ObservableForm,
   ObservableFormField,
 } from "./types"
-import { debounce, difference, get, isEqual, merge, set, uniq } from "lodash-es"
+import { debounce, difference, get, merge, set, uniq } from "lodash-es"
+import isEqual from "fast-deep-equal"
 import { ObjectSchema, ValidationResult } from "@corets/schema"
 import { isEmptyErrorsObject } from "./isEmptyErrorsObject"
 import { createStore, ObservableStore } from "@corets/store"
@@ -33,7 +34,7 @@ export class Form<TValue extends object = any, TResult = any>
   submitted: ObservableValue<boolean>
 
   constructor(initialValue: TValue = {} as TValue) {
-    this.configuration = createStore({
+    this.configuration = createStore<FormConfig<TValue, TResult>>({
       handler: undefined,
       validator: undefined,
       schema: undefined,
@@ -46,11 +47,11 @@ export class Form<TValue extends object = any, TResult = any>
     this.initialValue = initialValue
     this.value = createStore(initialValue)
     this.errors = createStore({})
-    this.result = createValue(undefined)
-    this.dirtyFields = createValue([])
-    this.changedFields = createValue([])
-    this.submitting = createValue(false)
-    this.submitted = createValue(false)
+    this.result = createValue<TResult | undefined>(undefined)
+    this.dirtyFields = createValue<string[]>([])
+    this.changedFields = createValue<string[]>([])
+    this.submitting = createValue<boolean>(false)
+    this.submitted = createValue<boolean>(false)
 
     this.setupReactiveBehaviour()
   }

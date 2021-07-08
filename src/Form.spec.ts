@@ -225,7 +225,7 @@ describe("Form", () => {
       { immediate: true }
     )
 
-    let result = await form.submit()
+    const result = await form.submit()
 
     expect(result).toBe(true)
     expect(handler).toHaveBeenCalledTimes(1)
@@ -238,7 +238,7 @@ describe("Form", () => {
 
   it("submits without handler", async () => {
     const form = new Form()
-    let result = await form.submit()
+    const result = await form.submit()
 
     expect(result).toBe(undefined)
   })
@@ -780,7 +780,7 @@ describe("Form", () => {
 
   it("listens", async () => {
     const form = new Form({ foo: { bar: "baz" } })
-    let listener = jest.fn()
+    const listener = jest.fn()
 
     const unsubscribe = form.listen(listener)
 
@@ -806,7 +806,7 @@ describe("Form", () => {
 
   it("listens with immediate", async () => {
     const form = new Form({ foo: { bar: "baz" } })
-    let listener = jest.fn()
+    const listener = jest.fn()
 
     const unsubscribe = form.listen(listener, { immediate: true })
 
@@ -833,23 +833,23 @@ describe("Form", () => {
 
   it("listens without debounce", () => {
     const form = new Form({ foo: { bar: "baz" } }).config({ debounce: 0 })
-    let listener = jest.fn()
+    const listener = jest.fn()
 
     const unsubscribe = form.listen(listener, { immediate: true })
 
-    expect(listener).toHaveBeenCalledTimes(7)
+    expect(listener).toHaveBeenCalledTimes(8)
     expect(listener).toHaveBeenCalledWith(form)
 
     form.setAt("foo.bar", "yolo")
 
-    expect(listener).toHaveBeenCalledTimes(10)
+    expect(listener).toHaveBeenCalledTimes(11)
     expect(listener).toHaveBeenCalledWith(form)
 
     unsubscribe()
 
     form.setAt("foo.bar", "swag")
 
-    expect(listener).toHaveBeenCalledTimes(10)
+    expect(listener).toHaveBeenCalledTimes(11)
   })
 
   it("deps", () => {
