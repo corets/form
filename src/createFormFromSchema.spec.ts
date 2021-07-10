@@ -1,10 +1,12 @@
 import { createFormFromSchema } from "./createFormFromSchema"
-import { object, shape } from "@corets/schema"
+import { object, schema } from "@corets/schema"
 
 describe("createFromFromSchema", () => {
   it("creates from from schema with default values", async () => {
-    const schema = object({ foo: shape("bar").string().oneOf(["foo"]) })
-    const form = createFormFromSchema<{ foo: string }, { error?: any }>(schema)
+    const formSchema = object({ foo: schema("bar").string().oneOf(["foo"]) })
+    const form = createFormFromSchema<{ foo: string }, { error?: any }>(
+      formSchema
+    )
 
     expect(form.getAt("foo")).toBe("bar")
 

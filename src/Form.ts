@@ -11,7 +11,7 @@ import {
   ObservableForm,
   ObservableFormField,
 } from "./types"
-import { debounce, difference, get, merge, set, uniq } from "lodash-es"
+import { debounce, difference, get, merge, set, uniq } from "lodash"
 import isEqual from "fast-deep-equal"
 import { ObjectSchema, ValidationResult } from "@corets/schema"
 import { isEmptyErrorsObject } from "./isEmptyErrorsObject"
