@@ -247,7 +247,7 @@ describe("Form", () => {
     const handler = jest.fn()
     const form = createForm().handler(handler)
 
-    form.setSubmitting(true)
+    form.setIsSubmitting(true)
 
     await form.submit()
 
@@ -986,7 +986,7 @@ describe("Form", () => {
     expect(
       form.deps(["foo", "bar"], {
         result: false,
-        submitting: false,
+        isSubmitting: false,
       })
     ).toEqual([
       `["fooz","barz"]`,
@@ -1002,8 +1002,8 @@ describe("Form", () => {
     expect(
       form.deps(["foo", "bar"], {
         result: false,
-        submitting: false,
-        submitted: false,
+        isSubmitting: false,
+        isSubmitted: false,
       })
     ).toEqual([
       `["fooz","barz"]`,
@@ -1019,9 +1019,9 @@ describe("Form", () => {
     expect(
       form.deps(["foo", "bar"], {
         result: false,
-        submitting: false,
-        submitted: false,
-        changedFields: false,
+        isSubmitting: false,
+        isSubmitted: false,
+        isChanged: false,
       })
     ).toEqual([
       `["fooz","barz"]`,
@@ -1037,10 +1037,10 @@ describe("Form", () => {
     expect(
       form.deps(["foo", "bar"], {
         result: false,
-        submitting: false,
-        submitted: false,
-        changedFields: false,
-        dirtyFields: false,
+        isSubmitting: false,
+        isSubmitted: false,
+        isChanged: false,
+        isDirty: false,
       })
     ).toEqual([
       `["fooz","barz"]`,
@@ -1056,10 +1056,10 @@ describe("Form", () => {
     expect(
       form.deps(["foo", "bar"], {
         result: false,
-        submitting: false,
-        submitted: false,
-        changedFields: false,
-        dirtyFields: false,
+        isSubmitting: false,
+        isSubmitted: false,
+        isChanged: false,
+        isDirty: false,
         errors: false,
       })
     ).toEqual([
@@ -1076,12 +1076,12 @@ describe("Form", () => {
     expect(
       form.deps(["foo", "bar"], {
         result: false,
-        submitting: false,
-        submitted: false,
-        changedFields: false,
-        dirtyFields: false,
+        isSubmitting: false,
+        isSubmitted: false,
+        isChanged: false,
+        isDirty: false,
         errors: false,
-        values: false,
+        value: false,
       })
     ).toEqual([
       `[]`,
@@ -1097,12 +1097,12 @@ describe("Form", () => {
     expect(
       form.deps(["foo", "bar"], {
         result: false,
-        submitting: false,
-        submitted: false,
-        changedFields: false,
-        dirtyFields: false,
+        isSubmitting: false,
+        isSubmitted: false,
+        isChanged: false,
+        isDirty: false,
         errors: false,
-        values: false,
+        value: false,
         config: false,
       })
     ).toEqual([
@@ -1119,12 +1119,12 @@ describe("Form", () => {
     expect(
       form.deps("foo", {
         result: false,
-        submitting: false,
-        submitted: false,
-        changedFields: false,
-        dirtyFields: false,
+        isSubmitting: false,
+        isSubmitted: false,
+        isChanged: false,
+        isDirty: false,
         errors: false,
-        values: false,
+        value: false,
         config: false,
       })
     ).toEqual([
@@ -1266,7 +1266,7 @@ describe("Form", () => {
 
     expect(form.isSubmitting()).toBe(false)
 
-    form.setSubmitting(true)
+    form.setIsSubmitting(true)
 
     expect(form.isSubmitting()).toBe(true)
   })
@@ -1276,7 +1276,7 @@ describe("Form", () => {
 
     expect(form.isSubmitted()).toBe(false)
 
-    form.setSubmitted(true)
+    form.setIsSubmitted(true)
 
     expect(form.isSubmitted()).toBe(true)
   })

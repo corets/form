@@ -285,7 +285,7 @@ export class Form<TValue extends object = any, TResult = any>
     return this.submitting.get()
   }
 
-  setSubmitting(submitting: boolean) {
+  setIsSubmitting(submitting: boolean) {
     this.submitting.set(submitting)
   }
 
@@ -293,7 +293,7 @@ export class Form<TValue extends object = any, TResult = any>
     return this.submitted.get()
   }
 
-  setSubmitted(submitted: boolean) {
+  setIsSubmitted(submitted: boolean) {
     this.submitted.set(submitted)
   }
 
@@ -456,24 +456,24 @@ export class Form<TValue extends object = any, TResult = any>
   deps(field: string | string[], options: FormDepsOptions = {}): any[] {
     const fields = Array.isArray(field) ? field : [field]
     const values =
-      options.values === false ? [] : fields.map((field) => this.getAt(field))
+      options.value === false ? [] : fields.map((field) => this.getAt(field))
     const errors =
       options.errors === false
         ? []
         : fields.map((field) => this.getErrorsAt(field))
     const result = options.result === false ? undefined : this.getResult()
     const dirtyFields =
-      options.dirtyFields === false
+      options.isDirty === false
         ? []
         : fields.map((field) => this.isDirtyAt(field))
     const changedFields =
-      options.changedFields === false
+      options.isChanged === false
         ? []
         : fields.map((field) => this.isChangedAt(field))
     const submitting =
-      options.submitting === false ? undefined : this.isSubmitting()
+      options.isSubmitting === false ? undefined : this.isSubmitting()
     const submitted =
-      options.submitted === false ? undefined : this.isSubmitted()
+      options.isSubmitted === false ? undefined : this.isSubmitted()
 
     const { validate, debounce, reactive, sanitize } = this.configuration.get()
     const config =

@@ -37,11 +37,11 @@ export type FormSubmitOptions = {
 
 export type FormDepsOptions = {
   config?: boolean
-  values?: boolean
-  dirtyFields?: boolean
-  changedFields?: boolean
-  submitting?: boolean
-  submitted?: boolean
+  value?: boolean
+  isDirty?: boolean
+  isChanged?: boolean
+  isSubmitting?: boolean
+  isSubmitted?: boolean
   errors?: boolean
   result?: boolean
 }
@@ -101,9 +101,9 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
   clearResult(): void
 
   isSubmitting(): boolean
-  setSubmitting(submitted: boolean): void
+  setIsSubmitting(submitted: boolean): void
   isSubmitted(): boolean
-  setSubmitted(submitted: boolean): void
+  setIsSubmitted(submitted: boolean): void
 
   submit(options?: FormSubmitOptions): Promise<TResult | undefined>
   validate(options?: FormValidateOptions): Promise<ValidationResult | undefined>
