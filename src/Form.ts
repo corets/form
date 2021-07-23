@@ -329,7 +329,7 @@ export class Form<TValue extends object = any, TResult = any>
     return unsubscribe
   }
 
-  config(config: Partial<FormConfig<TValue, TResult>>): this {
+  configure(config: Partial<FormConfig<TValue, TResult>>): this {
     this.configuration.put(config)
 
     return this

@@ -204,7 +204,7 @@ describe("Form", () => {
 
   it("submits", async () => {
     const handler = jest.fn().mockResolvedValue(true)
-    const form = new Form({ foo: "bar" }).config({ validate: false })
+    const form = new Form({ foo: "bar" }).configure({ validate: false })
     form.handler(handler)
     form.setErrors({ foo: ["bar"] })
     form.setResult({ foo: "bar" })
@@ -497,7 +497,7 @@ describe("Form", () => {
     const handler = jest.fn()
     const validator = jest.fn()
     const form = new Form({ foo: "bar" })
-      .config({ validate: false })
+      .configure({ validate: false })
       .validator(validator)
       .handler(handler)
 
@@ -516,7 +516,7 @@ describe("Form", () => {
     expect(validator).toHaveBeenCalledTimes(1)
     expect(handler).toHaveBeenCalledTimes(3)
 
-    form.config({ validate: true })
+    form.configure({ validate: true })
 
     await form.submit()
 
@@ -615,7 +615,7 @@ describe("Form", () => {
   it("passes options from submit to validate", async () => {
     const handler = jest.fn(() => "result")
     const form = new Form({ foo: "ba", bar: "ba" })
-      .config({ validate: false })
+      .configure({ validate: false })
       .handler(handler)
       .schema(object({ foo: string().min(3), bar: string().min(3) }))
 
@@ -673,7 +673,7 @@ describe("Form", () => {
 
   it("validates on change can be disabled", async () => {
     const form = new Form({ foo: "ba", bar: "ba" })
-      .config({ reactive: false })
+      .configure({ reactive: false })
       .schema(object({ foo: string().min(3), bar: string().min(3) }))
 
     expect(form.getErrors()).toBe(undefined)
@@ -832,7 +832,7 @@ describe("Form", () => {
   })
 
   it("listens without debounce", () => {
-    const form = new Form({ foo: { bar: "baz" } }).config({ debounce: 0 })
+    const form = new Form({ foo: { bar: "baz" } }).configure({ debounce: 0 })
     const listener = jest.fn()
 
     const unsubscribe = form.listen(listener, { immediate: true })
@@ -1313,7 +1313,7 @@ describe("Form", () => {
 
   it("accepts 'reactive' false", async () => {
     const form = new Form({ foo: "a", bar: "b" })
-      .config({ reactive: false })
+      .configure({ reactive: false })
       .schema(object({ foo: string().min(3), bar: string().min(3) }))
 
     expect(form.getErrors() === undefined).toBe(true)
@@ -1367,7 +1367,7 @@ describe("Form", () => {
 
   it("accepts 'validate' false", async () => {
     const form = new Form({ foo: "a", bar: "b" })
-      .config({ validate: false })
+      .configure({ validate: false })
       .schema(object({ foo: string().min(3), bar: string().min(3) }))
 
     await form.submit()
@@ -1426,7 +1426,7 @@ describe("Form", () => {
 
   it("accepts 'sanitize' false", async () => {
     const form = new Form({ foo: "a  ", bar: "b  " })
-      .config({ sanitize: false })
+      .configure({ sanitize: false })
       .schema(
         object({
           foo: string().min(3).toTrimmed(),
