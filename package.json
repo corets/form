@@ -19,7 +19,7 @@
     "/dist"
   ],
   "repository": "github:corets/form",
-  "homepage": "https://corets.github.io/form",
+  "homepage": "https://docs.corets.io/services/form",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
