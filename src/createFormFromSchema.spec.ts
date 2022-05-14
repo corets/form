@@ -17,4 +17,31 @@ describe("createFromFromSchema", () => {
     form.setAt("foo", "foo")
     expect(await form.validate()).toBe(undefined)
   })
+
+  it("creates from from schema factory", async () => {
+    const form = createFormFromSchema<
+      { foo: string; bar: string },
+      { error?: any }
+    >((form) =>
+      object({
+        foo: schema("bar").string(),
+        bar: schema("foo")
+          .string()
+          .equals(() => form.getAt("foo")),
+      })
+    )
+
+    expect(form.getAt("foo")).toBe("bar")
+    expect(form.getAt("bar")).toBe("foo")
+
+    const errors = await form.validate()
+
+    expect(errors).toBeDefined()
+    expect(errors?.foo).toBeUndefined()
+    expect(errors?.bar).toBeDefined()
+
+    form.setAt("bar", "bar")
+
+    expect(await form.validate()).toBe(undefined)
+  })
 })

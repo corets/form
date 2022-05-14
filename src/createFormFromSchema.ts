@@ -1,10 +1,20 @@
 import { createForm } from "./createForm"
-import { ObjectSchema } from "@corets/schema"
-import { CreateFormFromSchema } from "./types"
+import { CreateFormFromSchema, FormSchema } from "./types"
 
 export const createFormFromSchema: CreateFormFromSchema = <
   TValue extends object = any,
   TResult = any
 >(
-  schema: ObjectSchema<TValue>
-) => createForm<TValue, TResult>(schema.sanitize({})).schema(schema)
+  schemaOrSchemaFactory: FormSchema<TValue>
+) => {
+  const form = createForm<TValue, TResult>()
+  const schema =
+    typeof schemaOrSchemaFactory === "function"
+      ? schemaOrSchemaFactory(form)
+      : schemaOrSchemaFactory
+
+  form.clear(schema.sanitize({}))
+  form.schema(schema)
+
+  return form
+}

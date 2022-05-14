@@ -6,7 +6,7 @@ export type CreateForm = <TValue extends object = any, TResult = any>(
 ) => ObservableForm<TValue, TResult>
 
 export type CreateFormFromSchema = <TValue extends object = any, TResult = any>(
-  schema: ObjectSchema<TValue>
+  schemaOrSchemaFactory: FormSchema<TValue>
 ) => ObservableForm<TValue, TResult>
 
 export type FormValidator<TValue extends object, TResult> = (
@@ -61,6 +61,10 @@ export type FormListenOptions = {
   debounce?: number
 }
 
+export type FormSchema<TValue extends object> =
+  | ObjectSchema<TValue>
+  | ((form: ObservableForm<TValue>) => ObjectSchema<TValue>)
+
 export interface ObservableForm<TValue extends object = any, TResult = any> {
   get(): TValue
   getAt(path: string): any
@@ -110,7 +114,7 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
 
   configure(config: Partial<FormConfig<TValue, TResult>>): this
   validator(validator: FormValidator<TValue, TResult>): this
-  schema(schema: ObjectSchema<TValue>): this
+  schema(schemaOrSchemaFactory: FormSchema<TValue>): this
   handler(handler: FormHandler<TValue, TResult>): this
 
   listen(

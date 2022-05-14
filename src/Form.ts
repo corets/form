@@ -10,6 +10,7 @@ import {
   FormValidator,
   ObservableForm,
   ObservableFormField,
+  FormSchema,
 } from "./types"
 import debounce from "lodash/debounce"
 import difference from "lodash/difference"
@@ -347,7 +348,12 @@ export class Form<TValue extends object = any, TResult = any>
     return this
   }
 
-  schema(schema: ObjectSchema<TValue>): this {
+  schema(schemaOrSchemaFactory: FormSchema<TValue>): this {
+    const schema =
+      typeof schemaOrSchemaFactory === "function"
+        ? schemaOrSchemaFactory(this)
+        : schemaOrSchemaFactory
+
     this.configuration.put({ schema })
 
     return this

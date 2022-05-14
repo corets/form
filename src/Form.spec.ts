@@ -356,6 +356,25 @@ describe("Form", () => {
     expect(typeof errors.bar[0] === "string").toBe(true)
   })
 
+  it("validates with schema factory", async () => {
+    const form = new Form({ foo: "foo", bar: "bar" }).schema((form) =>
+      object({
+        foo: string(),
+        bar: string().equals(() => form.getAt("foo")),
+      })
+    )
+
+    const errors = (await form.validate())!
+
+    expect(errors).toBeDefined()
+    expect(errors?.foo).toBeUndefined()
+    expect(errors?.bar).toBeDefined()
+
+    form.setAt("bar", "foo")
+
+    expect(await form.validate()).toBe(undefined)
+  })
+
   it("sanitizes with schema", async () => {
     const form = new Form({ foo: "bar" }).schema(
       object({
