@@ -122,7 +122,7 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
     options?: FormListenOptions
   ): FormListenerUnsubscribe
 
-  deps(field: string | string[], options?: FormDepsOptions): any[]
+  getDeps(field: string | string[], options?: FormDepsOptions): any[]
 
   getFields(): ObjectAccessor<
     TValue,

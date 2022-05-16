@@ -871,7 +871,7 @@ describe("Form", () => {
     expect(listener).toHaveBeenCalledTimes(11)
   })
 
-  it("deps", () => {
+  it("returns dependencies for specific fields", () => {
     const form = new Form({ foo: "foo", bar: "bar" })
 
     const getSerializedConfig = () => {
@@ -885,7 +885,7 @@ describe("Form", () => {
       return JSON.stringify({ validate, debounce, reactive, sanitize })
     }
 
-    expect(form.deps(["foo", "bar"])).toEqual([
+    expect(form.getDeps(["foo", "bar"])).toEqual([
       `["foo","bar"]`,
       `[null,null]`,
       `[false,false]`,
@@ -898,7 +898,7 @@ describe("Form", () => {
 
     form.setAt("foo", "fooz")
 
-    expect(form.deps(["foo", "bar"])).toEqual([
+    expect(form.getDeps(["foo", "bar"])).toEqual([
       `["fooz","bar"]`,
       `[null,null]`,
       `[true,false]`,
@@ -911,7 +911,7 @@ describe("Form", () => {
 
     form.setErrorsAt("foo", ["error"])
 
-    expect(form.deps(["foo", "bar"])).toEqual([
+    expect(form.getDeps(["foo", "bar"])).toEqual([
       `["fooz","bar"]`,
       `[["error"],null]`,
       `[true,false]`,
@@ -924,7 +924,7 @@ describe("Form", () => {
 
     form.submitting.set(true)
 
-    expect(form.deps(["foo", "bar"])).toEqual([
+    expect(form.getDeps(["foo", "bar"])).toEqual([
       `["fooz","bar"]`,
       `[["error"],null]`,
       `[true,false]`,
@@ -937,7 +937,7 @@ describe("Form", () => {
 
     form.submitted.set(true)
 
-    expect(form.deps(["foo", "bar"])).toEqual([
+    expect(form.getDeps(["foo", "bar"])).toEqual([
       `["fooz","bar"]`,
       `[["error"],null]`,
       `[true,false]`,
@@ -950,7 +950,7 @@ describe("Form", () => {
 
     form.setResult({ status: "ok" })
 
-    expect(form.deps(["foo", "bar"])).toEqual([
+    expect(form.getDeps(["foo", "bar"])).toEqual([
       `["fooz","bar"]`,
       `[["error"],null]`,
       `[true,false]`,
@@ -963,7 +963,7 @@ describe("Form", () => {
 
     form.setAt("bar", "barz")
 
-    expect(form.deps(["foo", "bar"])).toEqual([
+    expect(form.getDeps(["foo", "bar"])).toEqual([
       `["fooz","barz"]`,
       `[["error"],null]`,
       `[true,true]`,
@@ -976,7 +976,7 @@ describe("Form", () => {
 
     form.setErrorsAt("bar", ["yolo"])
 
-    expect(form.deps(["foo", "bar"])).toEqual([
+    expect(form.getDeps(["foo", "bar"])).toEqual([
       `["fooz","barz"]`,
       `[["error"],["yolo"]]`,
       `[true,true]`,
@@ -988,7 +988,7 @@ describe("Form", () => {
     ])
 
     expect(
-      form.deps(["foo", "bar"], {
+      form.getDeps(["foo", "bar"], {
         result: false,
       })
     ).toEqual([
@@ -1003,7 +1003,7 @@ describe("Form", () => {
     ])
 
     expect(
-      form.deps(["foo", "bar"], {
+      form.getDeps(["foo", "bar"], {
         result: false,
         isSubmitting: false,
       })
@@ -1019,7 +1019,7 @@ describe("Form", () => {
     ])
 
     expect(
-      form.deps(["foo", "bar"], {
+      form.getDeps(["foo", "bar"], {
         result: false,
         isSubmitting: false,
         isSubmitted: false,
@@ -1036,7 +1036,7 @@ describe("Form", () => {
     ])
 
     expect(
-      form.deps(["foo", "bar"], {
+      form.getDeps(["foo", "bar"], {
         result: false,
         isSubmitting: false,
         isSubmitted: false,
@@ -1054,7 +1054,7 @@ describe("Form", () => {
     ])
 
     expect(
-      form.deps(["foo", "bar"], {
+      form.getDeps(["foo", "bar"], {
         result: false,
         isSubmitting: false,
         isSubmitted: false,
@@ -1073,7 +1073,7 @@ describe("Form", () => {
     ])
 
     expect(
-      form.deps(["foo", "bar"], {
+      form.getDeps(["foo", "bar"], {
         result: false,
         isSubmitting: false,
         isSubmitted: false,
@@ -1093,7 +1093,7 @@ describe("Form", () => {
     ])
 
     expect(
-      form.deps(["foo", "bar"], {
+      form.getDeps(["foo", "bar"], {
         result: false,
         isSubmitting: false,
         isSubmitted: false,
@@ -1114,7 +1114,7 @@ describe("Form", () => {
     ])
 
     expect(
-      form.deps(["foo", "bar"], {
+      form.getDeps(["foo", "bar"], {
         result: false,
         isSubmitting: false,
         isSubmitted: false,
@@ -1136,7 +1136,7 @@ describe("Form", () => {
     ])
 
     expect(
-      form.deps("foo", {
+      form.getDeps("foo", {
         result: false,
         isSubmitting: false,
         isSubmitted: false,

@@ -459,7 +459,7 @@ export class Form<TValue extends object = any, TResult = any>
     return isEmptyErrorsObject(newErrors) ? undefined : newErrors
   }
 
-  deps(field: string | string[], options: FormDepsOptions = {}): any[] {
+  getDeps(field: string | string[], options: FormDepsOptions = {}): any[] {
     const fields = Array.isArray(field) ? field : [field]
     const values =
       options.value === false ? [] : fields.map((field) => this.getAt(field))
