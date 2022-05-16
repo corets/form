@@ -1561,9 +1561,9 @@ describe("Form", () => {
     expect(form.getErrors()?.foo === undefined).toBe(true)
   })
 
-  it("returns an object accessor for fields", () => {
+  it("returns an object accessor for all fields", () => {
     const form = new Form({ foo: "bar", bar: { baz: "yolo" } })
-    const fields = form.fields()
+    const fields = form.getFields()
 
     expect(fields.foo.get() instanceof FormField).toBe(true)
     expect(fields.foo.get().getValue()).toBe("bar")

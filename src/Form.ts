@@ -501,7 +501,7 @@ export class Form<TValue extends object = any, TResult = any>
     return deps
   }
 
-  fields(): ObjectAccessor<TValue, ObservableFormField<ObservableForm>> {
+  getFields(): ObjectAccessor<TValue, ObservableFormField<ObservableForm>> {
     return createAccessor(
       this.get(),
       (source, key) => new FormField(this as ObservableForm, key!.toString())

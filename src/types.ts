@@ -124,7 +124,7 @@ export interface ObservableForm<TValue extends object = any, TResult = any> {
 
   deps(field: string | string[], options?: FormDepsOptions): any[]
 
-  fields(): ObjectAccessor<
+  getFields(): ObjectAccessor<
     TValue,
     ObservableFormField<ObservableForm<TValue, TResult>>
   >
