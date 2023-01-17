@@ -1,4 +1,4 @@
-import { ObservableForm, ObservableFormField } from "./types"
+import { ObservableForm, ObservableFormField, FormDepsOptions } from "./types"
 
 export class FormField<TForm extends ObservableForm>
   implements ObservableFormField<TForm> {
@@ -68,5 +68,9 @@ export class FormField<TForm extends ObservableForm>
 
   getForm(): TForm {
     return this.form
+  }
+
+  getDeps(options?: FormDepsOptions): any[] {
+    return this.form.getDeps(this.getKey(), options)
   }
 }

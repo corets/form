@@ -152,4 +152,5 @@ export interface ObservableFormField<
   clearChanged(): void
 
   getForm(): TForm
+  getDeps(): any[]
 }

@@ -1,5 +1,6 @@
 import { createForm } from "./createForm"
 import { FormField } from "./FormField"
+import { Form } from "./Form"
 
 describe("FormField", () => {
   it("handles value", () => {
@@ -153,5 +154,13 @@ describe("FormField", () => {
     const field = new FormField(form, "foo.bar")
 
     expect(field.getKey()).toBe("foo.bar")
+  })
+
+  it("returns field dependencies", () => {
+    const form = new Form({ foo: "foo", bar: "bar" })
+
+    form.setAt("foo", "fooz")
+
+    expect(form.getFields().foo.get().getDeps()).toEqual(form.getDeps("foo"))
   })
 })
